@@ -55,10 +55,33 @@ It is built on top of the official [WordPress Abilities API](https://github.com/
 | [Elementor](https://wordpress.org/plugins/elementor/) (free) | `np/elementor-*` abilities |
 | [Yoast SEO](https://wordpress.org/plugins/wordpress-seo/) (free) | `np/*-yoast-*`, `np/get-seo-head`, `np/audit-seo`, post-level SEO meta |
 | Google AI Studio API key | `np/generate-image` |
+| **Pro license key** | The 39 Pro abilities (everything beyond the free 10 read-only tools) |
 
 ---
 
-## 🔧 Installation
+## 💎 Free vs Pro
+
+The plugin ships with **10 free read-only abilities** out of the box — enough to discover, audit and inspect a WordPress site from an AI client. The remaining **39 Pro abilities** (every write/build/automation tool) require a Pro license key, which is verified against [hamzanabulsi.com](https://hamzanabulsi.com) using **Ed25519** signed tokens.
+
+| Tier | Abilities | Description |
+|---|---|---|
+| **Free** | 10 | `site-info`, `system-info`, `list-posts`, `list-plugins`, `list-themes`, `list-menus`, `list-users`, `get-yoast-global`, `get-elementor-kit`, `elementor-list-templates` |
+| **Pro** | 49 (10 + 39) | Everything: content CRUD, image generation, taxonomy, theme, Elementor builders + templates, site administration, menus, users, full SEO automation |
+
+**To request a Pro key**, email **[hamzaalinabulsi@gmail.com](mailto:hamzaalinabulsi@gmail.com)** with your site URL — single-site keys are issued; agency keys for multiple sites are available on request.
+
+Once you have a key, paste it under **WP Admin → NP MCP → License → Activate license**. The plugin checks in once a week and continues working **offline for 14 days** if the server is unreachable.
+
+### Why a license server?
+
+- Tokens are **Ed25519-signed** by the server's secret key. The plugin only ships the public key — anyone who modifies the token (extends expiry, swaps domain, …) will fail signature verification and immediately fall back to the free tier.
+- Domain binding is enforced both **server-side** (one site per key by default) and **client-side** (token's `site_url` must match `home_url()`).
+- Revocation propagates within ~7 days (next refresh) — instantly if the site is online.
+- See [`includes/class-license.php`](includes/class-license.php) for the full client logic.
+
+---
+
+##  Installation
 
 ### Option 1 — Clone from GitHub (recommended)
 
