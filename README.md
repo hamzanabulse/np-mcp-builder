@@ -9,14 +9,14 @@
 
 [![WordPress](https://img.shields.io/badge/WordPress-6.9%2B-21759B?logo=wordpress&logoColor=white)](https://wordpress.org/)
 [![PHP](https://img.shields.io/badge/PHP-8.0%2B-777BB4?logo=php&logoColor=white)](https://www.php.net/)
-[![Elementor](https://img.shields.io/badge/Elementor-3.20%2B-D63384?logo=elementor&logoColor=white)](https://elementor.com/)
+[![Elementor](https://img.shields.io/badge/Elementor-4.x-D63384?logo=elementor&logoColor=white)](https://elementor.com/)
 [![Yoast SEO](https://img.shields.io/badge/Yoast%20SEO-supported-A4286A?logo=yoast&logoColor=white)](https://yoast.com/)
 [![Gemini](https://img.shields.io/badge/Google%20Gemini-AI%20images-4285F4?logo=googlegemini&logoColor=white)](https://ai.google.dev/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-1.5.0-success)](https://github.com/hamzanabulse/np-mcp-builder/releases)
 [![Security audit](https://img.shields.io/badge/PHPCS--security-passing-success)](docs/SECURITY-AUDIT.md)
 
-[Installation](#-installation) • [Abilities](#-abilities-49-tools) • [Examples](#-examples) • [Architecture](#-architecture) • [Roadmap](#-roadmap)
+[Installation](#-installation) • [Abilities](#-abilities) • [Examples](#-examples) • [Architecture](#-architecture) • [Credits](#-credits)
 
 </div>
 
@@ -26,22 +26,22 @@
 
 Most MCP servers for WordPress expose low-level CRUD over the REST API and force the AI to do all the heavy lifting (build Elementor JSON node-by-node, write JSON-LD by hand, juggle Yoast meta keys). **NP MCP Builder ships a higher-level vocabulary**: an AI sends one call like *"build a landing page about dental implants in Amman with 6 FAQs and a sticky WhatsApp button"* and the plugin produces a fully-styled Elementor page, generates a hero image with Gemini, sets the featured image, writes Yoast OG/Twitter tags, injects FAQPage + LocalBusiness + BreadcrumbList JSON-LD, and clears the Elementor CSS cache — in a single tool call.
 
-It is built on top of the official [WordPress Abilities API](https://github.com/WordPress/abilities-api) and [WordPress/mcp-adapter](https://github.com/WordPress/mcp-adapter), so abilities are first-class WordPress citizens (visible to other plugins, REST-discoverable, permission-checked) and the MCP transport is handled by the official adapter.
+Built on top of the official [WordPress Abilities API](https://github.com/WordPress/abilities-api) and [WordPress/mcp-adapter](https://github.com/WordPress/mcp-adapter), and bundles the [msrbuilds/elementor-mcp](https://github.com/msrbuilds/elementor-mcp) atomic widget builder for full Elementor 4.0 page construction.
 
 ---
 
 ## 🚀 Highlights
 
-- **49 abilities** across 9 categories (Content, Media, Taxonomy, Theme, Elementor, Site, Menus, Users, SEO).
-- **One-shot Elementor builders** — `np/elementor-build-blog` and `np/elementor-build-landing` accept a friendly schema (hero, faq, testimonials, pricing, stats, problem-agitation, benefits-grid, steps, CTA, video, …) and emit fully-styled pages.
+- **Two MCP servers, one plugin** — `mcp-adapter-default-server` (42 NP tools) + `elementor-mcp-server` (69 atomic Elementor tools) = **111 tools total**.
 - **AI-native image generation** — `np/generate-image` calls Google Gemini, resizes, converts to WebP, uploads to the Media Library with full SEO metadata (alt, title, caption, description).
+- **Full Elementor 4.0 atomic page-building** — bundled elementor-mcp server exposes per-widget tools (`add-atomic-heading`, `add-atomic-button`, `add-flexbox`, `add-icon-box`, etc.), composite `build-page`, template apply/save, find/move/duplicate elements, and full schema introspection.
 - **Auto JSON-LD schema** — `Schema_Builder` produces FAQPage, LocalBusiness/ProfessionalService, Service, BreadcrumbList, WebPage with AggregateRating + Reviews; injected into `<head>` from post meta.
 - **Deep Yoast integration** — read/write per-post meta (focus keyword, meta description, canonical, robots, OG title/desc/image, Twitter title/desc), read/write **global** Yoast settings (organization, person, social, sitemap, breadcrumbs), call Yoast's own `/yoast/v1/get_head` endpoint for any post or URL, and audit a whole site for missing SEO essentials.
-- **Elementor power tools** — read/write raw `_elementor_data`, list / save / apply library templates, regenerate per-post CSS, read/write the active kit (global colors, typography, container width).
 - **Full site administration** — list/activate/deactivate plugins (refuses self-deactivation), list/switch themes, update site settings, change permalink structure, clear caches (Elementor + object + transients), toggle maintenance mode, system info.
-- **Tabbed admin dashboard** — Overview, Abilities (per-tool on/off toggles), Tools (one-click cache clear), Settings (Gemini key, image defaults), Maintenance, About.
+- **Tabbed admin dashboard** — Overview, Abilities (per-tool on/off toggles), Tools (one-click cache clear), Settings (Gemini key, image defaults, license activation), Maintenance, About.
 - **Per-ability toggles** — disabled abilities are not registered with the Abilities API and not exposed via MCP — true zero-trust surface area.
 - **Maintenance mode** — 503 page for visitors, admins keep working, `Retry-After` header for crawlers.
+- **License-aware Free/Pro split** — see [Licensing](#-licensing).
 
 ---
 
@@ -52,17 +52,15 @@ It is built on top of the official [WordPress Abilities API](https://github.com/
 | WordPress 6.9+ | Abilities API |
 | PHP 8.0+ | Plugin |
 | [WordPress/mcp-adapter](https://github.com/WordPress/mcp-adapter) | Exposing abilities as MCP tools over HTTP |
-| [Elementor](https://wordpress.org/plugins/elementor/) (free) | `np/elementor-*` abilities |
+| [Elementor](https://wordpress.org/plugins/elementor/) (free) | Bundled `elementor-mcp-server` + Elementor kit abilities |
 | [Yoast SEO](https://wordpress.org/plugins/wordpress-seo/) (free) | `np/*-yoast-*`, `np/get-seo-head`, `np/audit-seo`, post-level SEO meta |
 | Google AI Studio API key | `np/generate-image` |
 
 ---
 
-##  Installation
+## 🚚 Installation
 
 ### Option 1 — Clone from GitHub (recommended)
-
-On the server (one-time install):
 
 ```bash
 cd /var/www/your-wordpress/wp-content/plugins
@@ -86,11 +84,18 @@ The deactivate/activate cycle forces WordPress to reload the new code (otherwise
 1. Download the latest ZIP from [Releases](https://github.com/hamzanabulse/np-mcp-builder/releases) (or **Code → Download ZIP**).
 2. WordPress admin → **Plugins → Add New → Upload Plugin** → select the ZIP → **Install Now** → **Activate**.
 
+> ⚠️ **Windows ZIP gotcha**: if you build/upload a ZIP from Windows and `unzip` on Linux, directories may lose execute bit and the bundled `vendor/elementor-mcp/` will silently fail to load. Fix:
+> ```bash
+> cd /var/www/your-wordpress/wp-content/plugins/np-mcp-builder
+> find . -type d -exec chmod 755 {} +
+> find . -type f -exec chmod 644 {} +
+> ```
+
 ### Post-install setup
 
 1. Open **NP MCP Builder** in the admin sidebar.
 2. **Settings tab** → paste your Google Gemini API key (only required for `np/generate-image`).
-3. Make sure [`mcp-adapter`](https://github.com/WordPress/mcp-adapter) is also installed and active (it provides the actual `/wp-json/mcp/v1/*` HTTP endpoint).
+3. Make sure [`mcp-adapter`](https://github.com/WordPress/mcp-adapter) is also installed and active.
 4. **Abilities tab** → toggle off any tools you do not want exposed.
 
 ### Connect Claude Desktop
@@ -101,38 +106,38 @@ Generate an Application Password in **Users → Profile → Application Password
 echo -n 'your-username:xxxx xxxx xxxx xxxx xxxx xxxx' | base64
 ```
 
-Edit `claude_desktop_config.json`:
+Edit `claude_desktop_config.json` to register **both** MCP servers:
 
 ```jsonc
 {
   "mcpServers": {
-    "wordpress": {
+    "np-mcp-builder": {
       "command": "npx",
       "args": [
-        "-y",
-        "mcp-remote",
+        "-y", "mcp-remote",
         "https://YOUR-SITE.com/wp-json/mcp/mcp-adapter-default-server",
-        "--header",
-        "Authorization: Basic YOUR_BASE64_TOKEN"
+        "--header", "Authorization: Basic YOUR_BASE64_TOKEN"
+      ]
+    },
+    "np-mcp-elementor": {
+      "command": "npx",
+      "args": [
+        "-y", "mcp-remote",
+        "https://YOUR-SITE.com/wp-json/mcp/elementor-mcp-server",
+        "--header", "Authorization: Basic YOUR_BASE64_TOKEN"
       ]
     }
   }
 }
 ```
 
-Restart Claude Desktop. You should see all 49 `np-*` tools available.
-
-### Verify the install
-
-```bash
-wp --allow-root --user=YOUR_ADMIN --path=/var/www/your-wordpress eval-file bin/test-abilities.php
-```
-
-Expected: `Registered: 49 / 49 — Missing: 0` followed by 11 `[OK]` lines for the read-only tools.
+Restart Claude Desktop. You should see all 111 tools available across the two servers.
 
 ---
 
-## 🧰 Abilities (49 tools)
+## 🧰 Abilities
+
+### NP server — `mcp-adapter-default-server` (42 tools)
 
 <details open>
 <summary><b>Content (5)</b></summary>
@@ -179,40 +184,12 @@ Expected: `Registered: 49 / 49 — Missing: 0` followed by 11 `[OK]` lines for t
 
 </details>
 
-<details open>
-<summary><b>Elementor — high-level builders (4)</b></summary>
-
-| Tool | Purpose |
-|---|---|
-| `np/elementor-build-blog` | One call → styled Elementor blog post (hero, sections, featured image, categories, tags, Yoast meta). |
-| `np/elementor-build-landing` | Conversion landing page with auto JSON-LD schema (FAQ, LocalBusiness, Service, Breadcrumbs, WebPage), sticky WhatsApp, custom CSS/JS. |
-| `np/elementor-append-sections` | Append/prepend sections to an existing Elementor post. |
-| `np/elementor-from-markdown` | Convert Markdown to a styled Elementor post. |
-
-</details>
-
 <details>
-<summary><b>Elementor — data &amp; templates (6)</b></summary>
+<summary><b>Site administration (10)</b></summary>
 
 | Tool | Purpose |
 |---|---|
-| `np/elementor-get-data` | Read raw `_elementor_data` + page settings of a post. |
-| `np/elementor-set-data` | Replace raw Elementor data of a post. |
-| `np/elementor-list-templates` | List `elementor_library` templates by type. |
-| `np/elementor-save-as-template` | Snapshot an existing post into the template library. |
-| `np/elementor-apply-template` | Apply (replace or append) a template to a target post. |
-| `np/elementor-regenerate-css` | Clear per-post CSS or rebuild Elementor file cache. |
-
-</details>
-
-<details>
-<summary><b>Site administration (11)</b></summary>
-
-| Tool | Purpose |
-|---|---|
-| `np/list-plugins` | All installed plugins + state. |
-| `np/activate-plugin` | Activate a plugin (refuses to act on itself). |
-| `np/deactivate-plugin` | Deactivate (refuses self-deactivation). |
+| `np/list-plugins` / `np/activate-plugin` / `np/deactivate-plugin` | Plugin inventory + control (refuses self-deactivation). |
 | `np/list-themes` / `np/switch-theme` | Theme inventory + switching. |
 | `np/get-site-settings` / `np/update-site-settings` | Core options (title, tagline, admin_email, timezone, …). |
 | `np/update-permalinks` | Change permalink structure + flush rewrites. |
@@ -254,47 +231,54 @@ Expected: `Registered: 49 / 49 — Missing: 0` followed by 11 `[OK]` lines for t
 |---|---|
 | `np/get-yoast-global` / `np/update-yoast-global` | Organization, person, social, sitemap, breadcrumbs. |
 | `np/get-elementor-kit` / `np/update-elementor-kit` | Active kit globals (colors, typography, container width). |
-| `np/get-seo-head` | **Yoast-rendered head** (HTML + structured JSON + full schema.org @graph) for any post or URL — uses Yoast's `/yoast/v1/get_head` endpoint internally. |
-| `np/audit-seo` | Scan posts/pages and report missing focus keyword, meta description, canonical, OG image, featured image, schema page type, short title, thin content — with per-post issue list and a heuristic score. |
+| `np/get-seo-head` | **Yoast-rendered head** (HTML + structured JSON + full schema.org @graph) for any post or URL. |
+| `np/audit-seo` | Scan posts/pages and report missing focus keyword, meta description, canonical, OG image, featured image, schema page type, short title, thin content. |
 
 </details>
+
+### Elementor server — `elementor-mcp-server` (69 tools)
+
+Bundled from [msrbuilds/elementor-mcp](https://github.com/msrbuilds/elementor-mcp). Exposes atomic Elementor 4.0 widget construction. Notable groups:
+
+- **Page operations** — `list-pages`, `get-page-structure`, `build-page` (composite), `apply-template`, `save-as-template`, `list-templates`.
+- **Atomic widgets (4.0)** — `add-atomic-heading`, `add-atomic-paragraph`, `add-atomic-button`, `add-atomic-image`, `add-atomic-divider`, `add-atomic-svg`, `add-atomic-video`, `add-atomic-youtube`, `add-atomic-widget`.
+- **Layout containers** — `add-flexbox`, `add-container`, `add-div-block`.
+- **Classic widgets** — heading, button, image, icon-box, accordion, tabs, testimonial, counter, progress, rating, social-icons, google-maps, image-carousel, video, html, shortcode, custom-js, …
+- **Element manipulation** — `find-element`, `move-element`, `duplicate-element`, `remove-element`, `reorder-elements`, `update-element`, `update-widget`, `update-container`, `batch-update`.
+- **Globals & schema** — `get-global-settings`, `update-global-colors`, `update-global-typography`, `get-widget-schema`, `get-container-schema`, `detect-elementor-version`, `list-widgets`.
+- **Media helpers** — `search-images` (Openverse), `sideload-image`, `add-stock-image`, `upload-svg-icon`.
+
+See the [bundled elementor-mcp README](vendor/elementor-mcp/README.md) for full per-tool docs.
 
 ---
 
 ## 💡 Examples
 
-### One-shot landing page
+### Build an Elementor 4.0 atomic landing page
 
 ```jsonc
-// np/elementor-build-landing
-{
-  "title": "Dental Implants Amman",
-  "slug": "dental-implants-amman",
-  "post_type": "page",
-  "yoast": {
-    "focus_keyword": "dental implants amman",
-    "meta_description": "Premium dental implants in Amman with a 10-year guarantee.",
-    "og_image_id": 1234,
-    "schema_page_type": "Service"
-  },
-  "sections": [
-    { "type": "hero", "heading": "Restore your smile in 24 hours", "subheading": "All-on-4 implants by board-certified surgeons.", "cta_text": "Book a free consultation", "cta_url": "#book", "image_id": 1234 },
-    { "type": "problem_agitation", "items": ["Embarrassed to smile", "Pain when chewing", "Loose dentures"] },
-    { "type": "benefits_grid", "items": [ {"icon":"shield","title":"10-year guarantee"}, {"icon":"clock","title":"Same-day teeth"} ] },
-    { "type": "testimonials", "items": [ {"name":"Sara", "rating":5, "quote":"Life-changing."} ] },
-    { "type": "pricing", "items": [ {"name":"Single implant","price":"380 JOD","features":["Titanium post","Crown","Lifetime checkup"]} ] },
-    { "type": "faq", "items": [ {"q":"Is it painful?","a":"Local anesthesia + IV sedation."} ] },
-    { "type": "cta", "heading": "Ready to smile again?", "cta_text": "WhatsApp us", "cta_url": "https://wa.me/962790000000" }
-  ],
-  "faqs": [ {"q":"Is it painful?","a":"Local anesthesia + IV sedation."} ],
-  "business": { "name": "Amman Dental", "phone": "+962790000000", "address": "Abdoun, Amman", "rating": 4.9, "reviews": 312 },
-  "service": { "name": "Dental Implants", "area": "Amman" },
-  "breadcrumbs": [ {"name":"Home","url":"/"}, {"name":"Services","url":"/services/"}, {"name":"Dental Implants"} ],
-  "sticky_whatsapp": "+962790000000"
-}
-```
+// 1) Create the post
+// np/create-post
+{ "title": "Dental Implants Amman", "post_type": "page", "status": "draft" }
+// → returns { "id": 142, ... }
 
-The plugin builds the full Elementor JSON, sets the featured image, writes all Yoast meta, injects four JSON-LD blocks (`FAQPage`, `LocalBusiness`, `Service`, `BreadcrumbList`) into `<head>`, adds the floating WhatsApp button via `_np_mcp_custom_js`, and clears the Elementor cache.
+// 2) Add a hero flexbox container
+// elementor-mcp/add-flexbox
+{ "post_id": 142, "settings": { "flex_direction": "column", "gap": { "size": 24 } } }
+// → returns { "element_id": "abc123" }
+
+// 3) Add atomic heading inside it
+// elementor-mcp/add-atomic-heading
+{ "post_id": 142, "parent_id": "abc123", "settings": { "title": "Restore your smile in 24 hours", "size": "h1" } }
+
+// 4) Add atomic CTA button
+// elementor-mcp/add-atomic-button
+{ "post_id": 142, "parent_id": "abc123", "settings": { "text": "Book a free consultation", "link": { "url": "#book" } } }
+
+// 5) Write Yoast SEO meta + schema
+// np/update-post
+{ "id": 142, "yoast": { "focus_keyword": "dental implants amman", "schema_page_type": "Service" }, "status": "publish" }
+```
 
 ### AI-generated image
 
@@ -323,35 +307,44 @@ Returns the new attachment ID, URL, dimensions, and full SEO metadata.
 ## 🏛️ Architecture
 
 ```
-┌────────────┐   MCP/HTTP    ┌───────────────┐   Abilities API   ┌──────────────────┐
-│  AI client │ ────────────► │  mcp-adapter  │ ────────────────► │  NP MCP Builder  │
-│ (Claude…)  │               │   (WordPress) │                   │   49 abilities   │
-└────────────┘               └───────────────┘                   └────────┬─────────┘
-                                                                          │
-            ┌─────────────────────┬─────────────────────┬─────────────────┼────────────────┐
-            ▼                     ▼                     ▼                 ▼                ▼
-      WP core (posts,        Elementor             Yoast SEO         Google          Custom hooks
-      taxonomies, users,     (`_elementor_data`,   (per-post +       Gemini          (admin UI,
-      menus, options…)        kit, library)        global +          (image gen)     maintenance,
-                                                   `/yoast/v1/`)                     schema injection)
+┌──────────────────┐   MCP/HTTP   ┌────────────────────────┐
+│  AI client       │ ───────────► │      mcp-adapter       │
+│  (Claude…)       │              │      (WordPress)       │
+└──────────────────┘              └────────────────────────┘
+                                          │
+                                          ├──────► default-server (42 NP abilities)
+                                          │
+                                          └──────► elementor-mcp-server (69 atomic tools)
+                                                       │
+                       ┌──────────────┬────────────────┼────────────────┬─────────────┐
+                       ▼              ▼                ▼                ▼             ▼
+                  WP core         Elementor        Yoast SEO        Google         Custom hooks
+                  (posts,         (4.0 atomic      (per-post +      Gemini         (admin UI,
+                   taxonomies,     widgets,         global +        (image gen)    maintenance,
+                   users,          containers,     `/yoast/v1/`)                    schema injection)
+                   menus)          templates)
 ```
 
 - **Bootstrap**: `np-mcp-builder.php` → `Plugin::instance()->init()` on `plugins_loaded` priority 5.
+- **Vendor load**: `vendor/elementor-mcp/elementor-mcp.php` is `require_once`-d on the same hook (only if Elementor itself is active).
 - **Categories** registered on `wp_abilities_api_categories_init`.
 - **Abilities** registered on `wp_abilities_api_init`. Each ability class lives in `includes/abilities/`. Disabled abilities are unregistered after the fact via `wp_unregister_ability`.
-- **MCP exposure** via the `mcp_adapter_default_server_config` filter — only enabled tools are advertised.
-- **Schema / CSS / JS** injected into `wp_head` and `wp_footer` from per-post meta (`_np_mcp_schema_jsonld`, `_np_mcp_custom_css`, `_np_mcp_custom_js`).
-- **Maintenance** is a `template_redirect` priority-0 short-circuit returning a 503 with a styled inline page.
+- **MCP servers** registered on `mcp_adapter_init`. The vendor bundle registers its own server transparently.
 
 ---
 
-## 🛡️ Security
+## 🪪 Licensing
 
-- Every ability has an explicit `permission_callback` that maps to a real WordPress capability (`edit_posts`, `manage_options`, `edit_theme_options`, `list_users`, `manage_categories`, …).
-- `np/deactivate-plugin` refuses to deactivate **itself** (would lock you out of the MCP server).
-- `np/delete-user` refuses to delete the **current** user.
-- Disabled abilities are fully unregistered — they cannot be invoked even by direct REST call.
-- All HTML output (maintenance page, schema, custom CSS/JS) is escaped through `esc_html` / `wp_strip_all_tags` / `wp_kses_post` as appropriate.
+NP MCP Builder ships **Free** and **Pro** capability levels (license-gated at the ability layer):
+
+- **Free**: core read-only tools, taxonomy CRUD, content read, `np/get-post`, `np/list-*`, `np/site-info`, etc.
+- **Pro**: write-heavy tools (`np/create-post`, `np/update-post`, `np/generate-image`, full Elementor builders, site administration, user management, SEO global writes…).
+
+Activate a license key in the admin **Settings** tab. License server: configurable via `NP_MCP_LICENSE_SERVER` constant.
+
+---
+
+## 🔒 Security
 
 The plugin ships its own audit harness at [`bin/audit-security.sh`](bin/audit-security.sh).
 The full report and capability matrix live in [`docs/SECURITY-AUDIT.md`](docs/SECURITY-AUDIT.md)
@@ -365,17 +358,28 @@ and the disclosure policy in [`SECURITY.md`](SECURITY.md).
 - [ ] ACF custom-field abilities.
 - [ ] Multilingual abilities (Polylang / WPML).
 - [ ] Bulk SEO fix tool (audit → auto-write meta_description with AI → re-verify).
-- [ ] Ability for image batch optimization (bulk WebP conversion).
+- [ ] Image batch optimization (bulk WebP conversion).
 
 ---
 
 ## 📝 Changelog
 
+### 1.5.0 — Elementor MCP bundle
+
+- **Bundled** [msrbuilds/elementor-mcp](https://github.com/msrbuilds/elementor-mcp) under `vendor/elementor-mcp/` — adds 69-tool atomic Elementor 4.0 server alongside the existing NP tools.
+- **Removed** the legacy `np/elementor-build-blog`, `np/elementor-build-landing`, `np/elementor-append-sections`, `np/elementor-from-markdown`, and the six Elementor data tools (replaced by the atomic bundle).
+- **Total tools now: 111** (42 NP + 69 Elementor).
+- License switched to **GPL-3.0-or-later** for compatibility with the bundled GPL-3 code.
+
+### 1.4.0 — License system
+
+- Free/Pro split with license-server activation flow.
+- New admin Settings panel for license key management.
+
 ### 1.3.0 — Yoast REST + Elementor data tools
 
-- New SEO abilities: `np/get-seo-head` (Yoast-rendered head HTML + JSON + schema graph for any post/URL via `/yoast/v1/get_head`), `np/audit-seo` (whole-site SEO scan with per-post issue list).
-- New Elementor data abilities: `np/elementor-get-data`, `np/elementor-set-data`, `np/elementor-list-templates`, `np/elementor-save-as-template`, `np/elementor-apply-template`, `np/elementor-regenerate-css`.
-- Plugin total now **49 abilities**.
+- New SEO abilities: `np/get-seo-head`, `np/audit-seo`.
+- New Elementor data abilities (later removed in 1.5.0 in favor of bundled atomic server).
 
 ### 1.2.0 — Admin dashboard + site control
 
@@ -387,7 +391,6 @@ and the disclosure policy in [`SECURITY.md`](SECURITY.md).
 
 ### 1.1.0 — Landing pages + schema
 
-- `np/elementor-build-landing` with 13 new conversion-focused section types.
 - `Schema_Builder` for FAQPage / LocalBusiness / Service / BreadcrumbList / WebPage.
 - Extended Yoast meta (canonical, noindex, OG, Twitter).
 - Sticky WhatsApp + per-page custom CSS/JS.
@@ -398,32 +401,18 @@ and the disclosure policy in [`SECURITY.md`](SECURITY.md).
 
 ---
 
-## 🧪 Testing
+## 🙏 Credits
 
-A smoke test that registers all abilities and dry-runs the read-only ones lives in `bin/test-abilities.php`:
-
-```bash
-wp --allow-root --user=YOUR_ADMIN --path=/var/www/wordpress eval-file bin/test-abilities.php
-```
-
-Expected output:
-
-```
-=== Registration ===
-Expected:   49
-Registered: 49
-Missing:    0
-=== Read-only callback dry-runs ===
-[OK  ] np/site-info …
-[OK  ] np/list-posts …
-… (11 OK)
-```
+- **Bundled MCP server**: [msrbuilds/elementor-mcp](https://github.com/msrbuilds/elementor-mcp) by [@mhamzashafiq](https://github.com/mhamzashafiq) — ships under `vendor/elementor-mcp/` and provides the atomic Elementor 4.0 builder tools. Licensed GPL-3.0-or-later.
+- **Foundation**: [WordPress Abilities API](https://github.com/WordPress/abilities-api) and [WordPress/mcp-adapter](https://github.com/WordPress/mcp-adapter).
 
 ---
 
-## 📜 License
+## 📄 License
 
-GPL-2.0-or-later — same as WordPress.
+GPL-3.0-or-later — see [LICENSE](LICENSE).
+
+This plugin bundles GPL-3.0 code from [msrbuilds/elementor-mcp](https://github.com/msrbuilds/elementor-mcp); the combined work is therefore distributed under GPL-3.0.
 
 ---
 
@@ -433,14 +422,3 @@ GPL-2.0-or-later — same as WordPress.
 Issues and PRs welcome on [GitHub](https://github.com/hamzanabulse/np-mcp-builder/issues).
 
 If this plugin saved you time, a ⭐️ on the repo is the best kind of thank-you.
-
-
-## ?? Credits
-
-NP MCP Builder bundles the **MCP Tools for Elementor** plugin by [Mian Shahzad Raza (msrbuilds)](https://github.com/msrbuilds/elementor-mcp) under GPL-3.0. That bundled component contributes 97 Elementor-specific MCP tools (atomic-element-aware page building, widgets, layouts, templates, theme builder, popups, dynamic tags, stock images, custom code). Huge thanks to [@msrbuilds](https://github.com/msrbuilds) and [@mhamzashafiq](https://github.com/mhamzashafiq) for their work.
-
-The bundled source lives in endor/elementor-mcp/ with its original copyright notices intact.
-
-## ?? License
-
-NP MCP Builder is released under the **GNU General Public License v3.0 or later** � see [LICENSE](LICENSE).
