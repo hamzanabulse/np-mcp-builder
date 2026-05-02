@@ -1,235 +1,388 @@
+<div align="center">
+
 # NP MCP Builder
 
-A WordPress plugin that turns your site into a Model Context Protocol (MCP) server, exposing high‑level content, taxonomy, theme and Elementor operations as callable abilities. Built on the WordPress Abilities API (6.9+) and the official [`mcp-adapter`](https://github.com/WordPress/mcp-adapter) plugin.
+**The complete WordPress + Elementor MCP control plane.**
+49 high-level abilities for AI assistants — content, media, SEO, Elementor, site administration — exposed as MCP tools to Claude, ChatGPT and any MCP-compatible client.
 
-[![WordPress](https://img.shields.io/badge/WordPress-6.9%2B-21759b)](https://wordpress.org/) [![PHP](https://img.shields.io/badge/PHP-8.0%2B-777bb4)](https://www.php.net/) [![License](https://img.shields.io/badge/License-GPLv2%2B-green.svg)](LICENSE) [![Elementor](https://img.shields.io/badge/Elementor-compatible-92003B)](https://elementor.com/)
+[![WordPress](https://img.shields.io/badge/WordPress-6.9%2B-21759B?logo=wordpress&logoColor=white)](https://wordpress.org/)
+[![PHP](https://img.shields.io/badge/PHP-8.0%2B-777BB4?logo=php&logoColor=white)](https://www.php.net/)
+[![Elementor](https://img.shields.io/badge/Elementor-3.x-D63384?logo=elementor&logoColor=white)](https://elementor.com/)
+[![Yoast SEO](https://img.shields.io/badge/Yoast%20SEO-supported-A4286A?logo=yoast&logoColor=white)](https://yoast.com/)
+[![Gemini](https://img.shields.io/badge/Google%20Gemini-AI%20images-4285F4?logo=googlegemini&logoColor=white)](https://ai.google.dev/)
+[![License: GPL v2+](https://img.shields.io/badge/License-GPLv2%2B-blue.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-1.3.0-success)](https://github.com/hamzanabulse/np-mcp-builder/releases)
 
-> **Keywords:** WordPress MCP server, Model Context Protocol, WordPress Abilities API, Claude Desktop WordPress, AI content generation, Gemini image generation, Elementor automation, headless WordPress AI, MCP tools WordPress, Yoast SEO automation.
+[Installation](#-installation) • [Abilities](#-abilities-49-tools) • [Examples](#-examples) • [Architecture](#-architecture) • [Roadmap](#-roadmap)
+
+</div>
 
 ---
 
-## Why this plugin
+## ✨ Why NP MCP Builder?
 
-Most MCP integrations for WordPress expose dozens of low‑level REST endpoints — one tool per CRUD operation — which forces the client to chain many calls and leak implementation details. NP MCP Builder takes the opposite approach: **a small, opinionated set of high‑level abilities** that match real editorial workflows.
+Most MCP servers for WordPress expose low-level CRUD over the REST API and force the AI to do all the heavy lifting (build Elementor JSON node-by-node, write JSON-LD by hand, juggle Yoast meta keys). **NP MCP Builder ships a higher-level vocabulary**: an AI sends one call like *"build a landing page about dental implants in Amman with 6 FAQs and a sticky WhatsApp button"* and the plugin produces a fully-styled Elementor page, generates a hero image with Gemini, sets the featured image, writes Yoast OG/Twitter tags, injects FAQPage + LocalBusiness + BreadcrumbList JSON-LD, and clears the Elementor CSS cache — in a single tool call.
 
-A single call to `np/elementor-build-blog` produces a complete, styled Elementor post with featured image, categories, tags, focus keyword, meta description and a full layout. A single call to `np/elementor-build-landing` produces a conversion‑focused landing page (hero, problem agitation, benefits grid, steps, testimonials, FAQ, pricing, guarantee, CTAs) with auto JSON‑LD schema (FAQ, LocalBusiness, Service, BreadcrumbList, WebPage) and full Yoast SEO. A single call to `np/elementor-from-markdown` converts a Markdown article into a styled Elementor page. A single call to `np/generate-image` produces a generated, resized, WebP‑optimised image with full Media Library SEO metadata.
+It is built on top of the official [WordPress Abilities API](https://github.com/WordPress/abilities-api) and [WordPress/mcp-adapter](https://github.com/WordPress/mcp-adapter), so abilities are first-class WordPress citizens (visible to other plugins, REST-discoverable, permission-checked) and the MCP transport is handled by the official adapter.
 
-## Features
+---
 
-- **16 abilities** registered through the official WordPress Abilities API.
-- **One‑shot Elementor blog builder** with a friendly section schema (hero, heading, paragraph, image, generated image, list, quote, divider, CTA, two‑column row, raw HTML).
-- **Markdown → Elementor** converter that preserves headings, lists, blockquotes, horizontal rules and inline formatting.
-- **Image pipeline** using Google Gemini (`gemini-2.5-flash-image`), with automatic resize, WebP conversion, alt/title/caption/description and attachment‑to‑post wiring.
-- **Native taxonomy management** — list, create, update, delete and assign terms (categories, tags, custom taxonomies) with auto‑creation by name.
-- **Yoast SEO integration** — sets focus keyword and meta description directly on `wp_insert_post` calls.
-- **Settings page** for the Gemini API key, default aspect ratio, default max width and default WebP quality.
-- **Capability‑checked permissions** on every ability.
-- **Namespaced under** `NP_MCP_Builder\` for clean integration with other plugins.
+## 🚀 Highlights
 
-## How it fits together
+- **49 abilities** across 9 categories (Content, Media, Taxonomy, Theme, Elementor, Site, Menus, Users, SEO).
+- **One-shot Elementor builders** — `np/elementor-build-blog` and `np/elementor-build-landing` accept a friendly schema (hero, faq, testimonials, pricing, stats, problem-agitation, benefits-grid, steps, CTA, video, …) and emit fully-styled pages.
+- **AI-native image generation** — `np/generate-image` calls Google Gemini, resizes, converts to WebP, uploads to the Media Library with full SEO metadata (alt, title, caption, description).
+- **Auto JSON-LD schema** — `Schema_Builder` produces FAQPage, LocalBusiness/ProfessionalService, Service, BreadcrumbList, WebPage with AggregateRating + Reviews; injected into `<head>` from post meta.
+- **Deep Yoast integration** — read/write per-post meta (focus keyword, meta description, canonical, robots, OG title/desc/image, Twitter title/desc), read/write **global** Yoast settings (organization, person, social, sitemap, breadcrumbs), call Yoast's own `/yoast/v1/get_head` endpoint for any post or URL, and audit a whole site for missing SEO essentials.
+- **Elementor power tools** — read/write raw `_elementor_data`, list / save / apply library templates, regenerate per-post CSS, read/write the active kit (global colors, typography, container width).
+- **Full site administration** — list/activate/deactivate plugins (refuses self-deactivation), list/switch themes, update site settings, change permalink structure, clear caches (Elementor + object + transients), toggle maintenance mode, system info.
+- **Tabbed admin dashboard** — Overview, Abilities (per-tool on/off toggles), Tools (one-click cache clear), Settings (Gemini key, image defaults), Maintenance, About.
+- **Per-ability toggles** — disabled abilities are not registered with the Abilities API and not exposed via MCP — true zero-trust surface area.
+- **Maintenance mode** — 503 page for visitors, admins keep working, `Retry-After` header for crawlers.
 
-WordPress 6.9 ships the **Abilities API** as a core registry: a way to declare typed, permission‑checked operations identified by names like `np/create-post`. The Abilities API itself does **not** expose anything over HTTP — it is just an in‑process registry.
+---
 
-The official **[`mcp-adapter`](https://github.com/WordPress/mcp-adapter)** plugin (maintained under the `WordPress/` GitHub organisation) is the bridge that takes registered abilities and exposes them as MCP tools at `/wp-json/mcp/v1/`, so MCP clients (Claude Desktop, Cursor, etc.) can discover and call them.
+## 📋 Requirements
 
-```
-  NP MCP Builder        ──▶  registers 16 abilities
-  Abilities API (core)  ──▶  in‑process registry
-  mcp-adapter plugin    ──▶  exposes abilities as MCP tools over HTTP
-  MCP client            ──▶  discovers and calls the tools
-```
+| | Required for |
+|---|---|
+| WordPress 6.9+ | Abilities API |
+| PHP 8.0+ | Plugin |
+| [WordPress/mcp-adapter](https://github.com/WordPress/mcp-adapter) | Exposing abilities as MCP tools over HTTP |
+| [Elementor](https://wordpress.org/plugins/elementor/) (free) | `np/elementor-*` abilities |
+| [Yoast SEO](https://wordpress.org/plugins/wordpress-seo/) (free) | `np/*-yoast-*`, `np/get-seo-head`, `np/audit-seo`, post-level SEO meta |
+| Google AI Studio API key | `np/generate-image` |
 
-Without `mcp-adapter` the abilities are still registered and callable from PHP via `wp_get_ability( 'np/...' )->execute( ... )`, but they will not be reachable from an external MCP client.
+---
 
-## Requirements
+## 🔧 Installation
 
-| Component | Version | Purpose |
-|----------|---------|---------|
-| WordPress | 6.9 or later | Abilities API |
-| PHP | 8.0 or later | typed properties, named arguments |
-| [`mcp-adapter`](https://github.com/WordPress/mcp-adapter) | latest | exposes abilities as MCP tools (only needed for remote MCP clients) |
-| Elementor | optional | required only by the `np/elementor-*` abilities |
-| Google AI Studio API key | optional | required only by `np/generate-image` |
-
-## Installation
+### From source
 
 ```bash
 cd wp-content/plugins
 git clone https://github.com/hamzanabulse/np-mcp-builder.git
+wp plugin activate np-mcp-builder
 ```
 
-Or download the ZIP and upload it through **Plugins → Add New → Upload Plugin**.
+### From ZIP
 
-Activate the plugin, then open **Settings → NP MCP Builder** and paste your Gemini API key (only needed for `np/generate-image`).
+1. Download the latest ZIP from [Releases](https://github.com/hamzanabulse/np-mcp-builder/releases).
+2. Plugins → Add New → Upload → activate.
+3. Open **NP MCP Builder** in the admin sidebar → **Settings** tab → paste your Gemini key.
+4. Make sure `mcp-adapter` is also active.
 
-## Quick start
+### Connect Claude Desktop
 
-Once the `mcp-adapter` plugin is active, the MCP endpoint is exposed at:
-
-```
-/wp-json/mcp/v1/
-```
-
-Authenticate using a WordPress Application Password. Example client config (Claude Desktop, Cursor, etc.):
-
-```json
+```jsonc
 {
   "mcpServers": {
     "wordpress": {
       "command": "npx",
-      "args": ["-y", "mcp-remote", "https://example.com/wp-json/mcp/v1/"],
-      "env": {
-        "AUTH_HEADER": "Basic <base64(user:application-password)>"
-      }
+      "args": ["-y", "mcp-remote", "https://YOUR-SITE.com/wp-json/mcp/v1/streamable", "--header", "Authorization: Bearer YOUR_APP_PASSWORD_BASE64"]
     }
   }
 }
 ```
 
-## Abilities
+Generate an Application Password in **Users → Profile → Application Passwords** and base64-encode `username:app-password`.
 
-| Ability | Category | Description |
-|---------|----------|-------------|
-| `np/site-info` | Site | Basic site info (name, URL, theme, language). |
-| `np/list-posts` | Content | List posts/pages with filters. |
-| `np/get-post` | Content | Read a single post with Yoast meta. |
-| `np/create-post` | Content | Create post or page with categories, tags, Yoast fields. |
-| `np/update-post` | Content | Update post fields and Yoast meta. |
-| `np/generate-image` | Media | Gemini → resize → WebP → Media Library, with full SEO metadata. |
-| `np/list-terms` | Taxonomy | List taxonomy terms. |
-| `np/create-term` | Taxonomy | Create category, tag or custom taxonomy term. |
-| `np/update-term` | Taxonomy | Rename / re‑slug / re‑parent a term. |
-| `np/delete-term` | Taxonomy | Delete a term. |
-| `np/set-post-terms` | Taxonomy | Assign terms by id, name or slug (auto‑create supported). |
-| `np/set-theme-mod` | Theme | Set a Customizer value. |
-| `np/get-theme-mod` | Theme | Read a Customizer value. |
-| `np/elementor-build-blog` | Elementor | Build a full styled Elementor post in one call. |
-| `np/elementor-build-landing` | Elementor | Build a conversion‑focused landing page in one call — hero, problem agitation, benefits grid, steps, testimonials, FAQ, stats, pricing, guarantee + auto JSON‑LD schema (FAQ, LocalBusiness, Service, BreadcrumbList, WebPage), full Yoast SEO, optional sticky WhatsApp button, custom CSS/JS. |
-| `np/elementor-append-sections` | Elementor | Append/prepend sections to an existing Elementor post. |
-| `np/elementor-from-markdown` | Elementor | Convert Markdown to a styled Elementor post. |
+---
 
-## Section schema (Elementor)
+## 🧰 Abilities (49 tools)
 
-Each item in the `sections` array of `np/elementor-build-blog` or `np/elementor-build-landing` is one of:
+<details open>
+<summary><b>Content (5)</b></summary>
+
+| Tool | Purpose |
+|---|---|
+| `np/site-info` | Site name, URL, language, timezone, post counts. |
+| `np/list-posts` | Paginated list of posts/pages with filters. |
+| `np/get-post` | Read a single post with full Yoast meta. |
+| `np/create-post` | Create post or page with categories, tags, featured image, Yoast meta. |
+| `np/update-post` | Update any post field + Yoast meta. |
+
+</details>
+
+<details>
+<summary><b>Media (1)</b></summary>
+
+| Tool | Purpose |
+|---|---|
+| `np/generate-image` | Gemini → resize → WebP → Media Library with SEO metadata (alt/title/caption/description). |
+
+</details>
+
+<details>
+<summary><b>Taxonomy (5)</b></summary>
+
+| Tool | Purpose |
+|---|---|
+| `np/list-terms` | List terms in any taxonomy. |
+| `np/create-term` | Create a term. |
+| `np/update-term` | Rename / re-slug / re-parent. |
+| `np/delete-term` | Delete term. |
+| `np/set-post-terms` | Assign terms to a post. |
+
+</details>
+
+<details>
+<summary><b>Theme customizer (2)</b></summary>
+
+| Tool | Purpose |
+|---|---|
+| `np/get-theme-mod` | Read a Customizer value. |
+| `np/set-theme-mod` | Set a Customizer value. |
+
+</details>
+
+<details open>
+<summary><b>Elementor — high-level builders (4)</b></summary>
+
+| Tool | Purpose |
+|---|---|
+| `np/elementor-build-blog` | One call → styled Elementor blog post (hero, sections, featured image, categories, tags, Yoast meta). |
+| `np/elementor-build-landing` | Conversion landing page with auto JSON-LD schema (FAQ, LocalBusiness, Service, Breadcrumbs, WebPage), sticky WhatsApp, custom CSS/JS. |
+| `np/elementor-append-sections` | Append/prepend sections to an existing Elementor post. |
+| `np/elementor-from-markdown` | Convert Markdown to a styled Elementor post. |
+
+</details>
+
+<details>
+<summary><b>Elementor — data &amp; templates (6)</b></summary>
+
+| Tool | Purpose |
+|---|---|
+| `np/elementor-get-data` | Read raw `_elementor_data` + page settings of a post. |
+| `np/elementor-set-data` | Replace raw Elementor data of a post. |
+| `np/elementor-list-templates` | List `elementor_library` templates by type. |
+| `np/elementor-save-as-template` | Snapshot an existing post into the template library. |
+| `np/elementor-apply-template` | Apply (replace or append) a template to a target post. |
+| `np/elementor-regenerate-css` | Clear per-post CSS or rebuild Elementor file cache. |
+
+</details>
+
+<details>
+<summary><b>Site administration (11)</b></summary>
+
+| Tool | Purpose |
+|---|---|
+| `np/list-plugins` | All installed plugins + state. |
+| `np/activate-plugin` | Activate a plugin (refuses to act on itself). |
+| `np/deactivate-plugin` | Deactivate (refuses self-deactivation). |
+| `np/list-themes` / `np/switch-theme` | Theme inventory + switching. |
+| `np/get-site-settings` / `np/update-site-settings` | Core options (title, tagline, admin_email, timezone, …). |
+| `np/update-permalinks` | Change permalink structure + flush rewrites. |
+| `np/clear-cache` | Elementor `files_manager` + object cache + transient flush. |
+| `np/maintenance-mode` | Toggle the built-in 503 page. |
+| `np/system-info` | WP / PHP / MySQL versions + plugin/theme detection. |
+
+</details>
+
+<details>
+<summary><b>Menus (5)</b></summary>
+
+| Tool | Purpose |
+|---|---|
+| `np/list-menus` | List nav menus + theme locations. |
+| `np/create-menu` | Create a menu, optionally seed with items (with nesting via `parent_index`). |
+| `np/update-menu` | Replace items or change locations. |
+| `np/delete-menu` | Delete a menu. |
+| `np/assign-menu-location` | Assign menu → theme location. |
+
+</details>
+
+<details>
+<summary><b>Users (4)</b></summary>
+
+| Tool | Purpose |
+|---|---|
+| `np/list-users` | Paginated user list. |
+| `np/create-user` | Create user with role + extended profile. |
+| `np/update-user` | Update fields and role. |
+| `np/delete-user` | Delete user, optional content reassign (refuses current user). |
+
+</details>
+
+<details>
+<summary><b>SEO &amp; Elementor kit (6)</b></summary>
+
+| Tool | Purpose |
+|---|---|
+| `np/get-yoast-global` / `np/update-yoast-global` | Organization, person, social, sitemap, breadcrumbs. |
+| `np/get-elementor-kit` / `np/update-elementor-kit` | Active kit globals (colors, typography, container width). |
+| `np/get-seo-head` | **Yoast-rendered head** (HTML + structured JSON + full schema.org @graph) for any post or URL — uses Yoast's `/yoast/v1/get_head` endpoint internally. |
+| `np/audit-seo` | Scan posts/pages and report missing focus keyword, meta description, canonical, OG image, featured image, schema page type, short title, thin content — with per-post issue list and a heuristic score. |
+
+</details>
+
+---
+
+## 💡 Examples
+
+### One-shot landing page
 
 ```jsonc
-// Core blocks
-{ "type": "hero",        "title": "…", "subtitle": "…", "cta_text": "…", "cta_url": "…", "bg": "#0F1115" }
-{ "type": "heading",     "level": "h2", "text": "…", "align": "left" }
-{ "type": "paragraph",   "text": "<p>HTML allowed</p>" }
-{ "type": "image",       "attachment_id": 123, "caption": "…" }
-{ "type": "image_gen",   "prompt": "…", "alt": "…", "aspect_ratio": "16:9" }
-{ "type": "list",        "items": ["one", "two", "three"] }
-{ "type": "quote",       "text": "…", "author": "…" }
-{ "type": "divider" }
-{ "type": "cta",         "title": "…", "text": "…", "button_text": "…", "button_url": "…" }
-{ "type": "two_columns", "left": [ /* sections */ ], "right": [ /* sections */ ] }
-{ "type": "html",        "code": "<div>…</div>" }
-{ "type": "spacer",      "height": 60 }
-{ "type": "video",       "url": "https://youtu.be/…" }
-
-// Landing‑page conversion blocks
-{ "type": "problem_agitation", "eyebrow": "…", "title": "…", "items": ["pain 1", "pain 2", "pain 3"] }
-{ "type": "benefits_grid",     "title": "…", "subtitle": "…", "columns": 3,
-  "items": [ { "icon": "fas fa-bolt", "title": "…", "text": "…" } ] }
-{ "type": "steps",             "title": "…",
-  "items": [ { "number": 1, "title": "…", "text": "…" } ] }
-{ "type": "testimonials",      "title": "…",
-  "items": [ { "quote": "…", "author": "…", "role": "…", "rating": 5 } ] }
-{ "type": "faq",               "title": "…",
-  "items": [ { "question": "…", "answer": "…" } ] }
-{ "type": "stats",             "items": [ { "number": "500+", "label": "…" } ] }
-{ "type": "pricing",           "plans": [ { "name": "Pro", "price": "$49", "period": "/mo",
-  "features": [ "…" ], "button_text": "…", "button_url": "…", "featured": true } ] }
-{ "type": "author_bio",        "name": "…", "role": "…", "bio": "…", "image_id": 12 }
-{ "type": "guarantee",         "title": "…", "text": "…" }
-{ "type": "feature_list",      "title": "…", "items": [ "feature 1", "feature 2", "…" ] }
-{ "type": "schema",            "json": "{\"@context\":\"https://schema.org\"…}" }
-```
-
-## Landing pages with auto schema and Yoast SEO
-
-`np/elementor-build-landing` accepts everything `np/elementor-build-blog`
-accepts — plus extended Yoast meta (`yoast_canonical`, `yoast_noindex`,
-`yoast_og_title`, `yoast_og_description`, `yoast_og_image_id`,
-`yoast_twitter_title`, `yoast_twitter_description`) and friendly schema
-inputs that are automatically rendered as JSON‑LD `<script>` tags in
-`<head>`:
-
-```jsonc
+// np/elementor-build-landing
 {
-  "title": "Landing page title",
-  "slug": "landing",
+  "title": "Dental Implants Amman",
+  "slug": "dental-implants-amman",
   "post_type": "page",
-  "status": "publish",
-  "yoast_focus_keyword": "main keyword",
-  "yoast_meta_description": "… (≤ 160 chars)",
-  "yoast_canonical": "https://example.com/landing",
-  "yoast_og_title": "…",
-  "yoast_og_description": "…",
-  "sticky_whatsapp": "+970599123456",
-  "custom_css": ".elementor-button{transition:transform .2s}.elementor-button:hover{transform:translateY(-2px)}",
-  "breadcrumbs": [
-    { "name": "Home", "url": "https://example.com/" },
-    { "name": "Services", "url": "https://example.com/services/" }
-  ],
-  "business": {
-    "type": "ProfessionalService",
-    "name": "Acme Co.",
-    "telephone": "+970599123456",
-    "priceRange": "$$",
-    "address": { "streetAddress": "…", "addressLocality": "Nablus", "addressCountry": "PS" },
-    "rating": { "ratingValue": "4.9", "reviewCount": "127" },
-    "reviews": [ { "author": "Sara", "rating": 5, "body": "…" } ]
+  "yoast": {
+    "focus_keyword": "dental implants amman",
+    "meta_description": "Premium dental implants in Amman with a 10-year guarantee.",
+    "og_image_id": 1234,
+    "schema_page_type": "Service"
   },
-  "faqs": [
-    { "question": "…", "answer": "…" }
+  "sections": [
+    { "type": "hero", "heading": "Restore your smile in 24 hours", "subheading": "All-on-4 implants by board-certified surgeons.", "cta_text": "Book a free consultation", "cta_url": "#book", "image_id": 1234 },
+    { "type": "problem_agitation", "items": ["Embarrassed to smile", "Pain when chewing", "Loose dentures"] },
+    { "type": "benefits_grid", "items": [ {"icon":"shield","title":"10-year guarantee"}, {"icon":"clock","title":"Same-day teeth"} ] },
+    { "type": "testimonials", "items": [ {"name":"Sara", "rating":5, "quote":"Life-changing."} ] },
+    { "type": "pricing", "items": [ {"name":"Single implant","price":"380 JOD","features":["Titanium post","Crown","Lifetime checkup"]} ] },
+    { "type": "faq", "items": [ {"q":"Is it painful?","a":"Local anesthesia + IV sedation."} ] },
+    { "type": "cta", "heading": "Ready to smile again?", "cta_text": "WhatsApp us", "cta_url": "https://wa.me/962790000000" }
   ],
-  "sections": [ /* mix of any section types above */ ]
+  "faqs": [ {"q":"Is it painful?","a":"Local anesthesia + IV sedation."} ],
+  "business": { "name": "Amman Dental", "phone": "+962790000000", "address": "Abdoun, Amman", "rating": 4.9, "reviews": 312 },
+  "service": { "name": "Dental Implants", "area": "Amman" },
+  "breadcrumbs": [ {"name":"Home","url":"/"}, {"name":"Services","url":"/services/"}, {"name":"Dental Implants"} ],
+  "sticky_whatsapp": "+962790000000"
 }
 ```
 
-## Repository layout
+The plugin builds the full Elementor JSON, sets the featured image, writes all Yoast meta, injects four JSON-LD blocks (`FAQPage`, `LocalBusiness`, `Service`, `BreadcrumbList`) into `<head>`, adds the floating WhatsApp button via `_np_mcp_custom_js`, and clears the Elementor cache.
 
-```
-np-mcp-builder/
-├── np-mcp-builder.php              Plugin bootstrap and headers
-├── readme.txt                      WordPress.org‑style readme
-├── uninstall.php                   Cleanup on plugin deletion
-├── LICENSE                         GPL‑2.0‑or‑later
-└── includes/
-    ├── class-plugin.php            Singleton: registers categories, abilities, MCP tools
-    ├── class-image-generator.php   Gemini API client + WebP pipeline
-    ├── class-section-builder.php   Friendly schema → Elementor JSON nodes
-    ├── abilities/
-    │   ├── class-content-abilities.php
-    │   ├── class-image-abilities.php
-    │   ├── class-taxonomy-abilities.php
-    │   ├── class-theme-abilities.php
-    │   └── class-elementor-abilities.php
-    └── admin/
-        └── class-settings.php
+### AI-generated image
+
+```jsonc
+// np/generate-image
+{
+  "prompt": "Photorealistic dental clinic, white interior, soft daylight",
+  "aspect_ratio": "16:9",
+  "title": "Modern dental clinic interior",
+  "alt_text": "Bright dental clinic with white furniture and natural light"
+}
 ```
 
-## Security
+Returns the new attachment ID, URL, dimensions, and full SEO metadata.
 
-- Every ability declares an explicit `permission_callback` mapped to a WordPress capability (`manage_options`, `edit_posts`, `publish_posts`, `manage_categories`, `edit_theme_options`, `upload_files`).
-- The Gemini API key is stored in the `wp_options` table and rendered as a `password`‑typed field in the admin UI.
-- All input is validated against JSON Schema and sanitised with the appropriate WordPress helpers (`sanitize_text_field`, `wp_kses_post`, `sanitize_title`, etc.).
-- No data leaves the site unless an ability explicitly requires it (only `np/generate-image` calls Gemini).
+### SEO audit + fix loop
 
-## Contributing
+```jsonc
+// 1. np/audit-seo  → returns posts missing focus_keyword / meta_description / og_image
+// 2. for each post: np/update-post with the fixes
+// 3. np/get-seo-head { "post_id": 42 } → verify the rendered <head> + schema graph
+```
 
-Issues and pull requests are welcome. Please run `php -l` on any modified PHP file before submitting and keep new abilities namespaced under `np/`.
+---
 
-## Versioning
+## 🏛️ Architecture
 
-Follows [Semantic Versioning](https://semver.org/). The public surface is the set of registered ability names together with their input and output schemas.
+```
+┌────────────┐   MCP/HTTP    ┌───────────────┐   Abilities API   ┌──────────────────┐
+│  AI client │ ────────────► │  mcp-adapter  │ ────────────────► │  NP MCP Builder  │
+│ (Claude…)  │               │   (WordPress) │                   │   49 abilities   │
+└────────────┘               └───────────────┘                   └────────┬─────────┘
+                                                                          │
+            ┌─────────────────────┬─────────────────────┬─────────────────┼────────────────┐
+            ▼                     ▼                     ▼                 ▼                ▼
+      WP core (posts,        Elementor             Yoast SEO         Google          Custom hooks
+      taxonomies, users,     (`_elementor_data`,   (per-post +       Gemini          (admin UI,
+      menus, options…)        kit, library)        global +          (image gen)     maintenance,
+                                                   `/yoast/v1/`)                     schema injection)
+```
 
-## License
+- **Bootstrap**: `np-mcp-builder.php` → `Plugin::instance()->init()` on `plugins_loaded` priority 5.
+- **Categories** registered on `wp_abilities_api_categories_init`.
+- **Abilities** registered on `wp_abilities_api_init`. Each ability class lives in `includes/abilities/`. Disabled abilities are unregistered after the fact via `wp_unregister_ability`.
+- **MCP exposure** via the `mcp_adapter_default_server_config` filter — only enabled tools are advertised.
+- **Schema / CSS / JS** injected into `wp_head` and `wp_footer` from per-post meta (`_np_mcp_schema_jsonld`, `_np_mcp_custom_css`, `_np_mcp_custom_js`).
+- **Maintenance** is a `template_redirect` priority-0 short-circuit returning a 503 with a styled inline page.
 
-[GPL‑2.0‑or‑later](LICENSE).
+---
 
-## Author
+## 🛡️ Security
 
-Hamza Ali Nabulsi — [hamzanabulsi.com](https://hamzanabulsi.com)
+- Every ability has an explicit `permission_callback` that maps to a real WordPress capability (`edit_posts`, `manage_options`, `edit_theme_options`, `list_users`, `manage_categories`, …).
+- `np/deactivate-plugin` refuses to deactivate **itself** (would lock you out of the MCP server).
+- `np/delete-user` refuses to delete the **current** user.
+- Disabled abilities are fully unregistered — they cannot be invoked even by direct REST call.
+- All HTML output (maintenance page, schema, custom CSS/JS) is escaped through `esc_html` / `wp_strip_all_tags` / `wp_kses_post` as appropriate.
+
+---
+
+## 🗺️ Roadmap
+
+- [ ] WooCommerce abilities (products, variations, orders, coupons).
+- [ ] ACF custom-field abilities.
+- [ ] Multilingual abilities (Polylang / WPML).
+- [ ] Bulk SEO fix tool (audit → auto-write meta_description with AI → re-verify).
+- [ ] Ability for image batch optimization (bulk WebP conversion).
+
+---
+
+## 📝 Changelog
+
+### 1.3.0 — Yoast REST + Elementor data tools
+
+- New SEO abilities: `np/get-seo-head` (Yoast-rendered head HTML + JSON + schema graph for any post/URL via `/yoast/v1/get_head`), `np/audit-seo` (whole-site SEO scan with per-post issue list).
+- New Elementor data abilities: `np/elementor-get-data`, `np/elementor-set-data`, `np/elementor-list-templates`, `np/elementor-save-as-template`, `np/elementor-apply-template`, `np/elementor-regenerate-css`.
+- Plugin total now **49 abilities**.
+
+### 1.2.0 — Admin dashboard + site control
+
+- Tabbed admin dashboard (Overview / Abilities / Tools / Settings / Maintenance / About).
+- Per-ability on/off toggles.
+- Site abilities (plugins, themes, settings, permalinks, cache, maintenance, system info).
+- Menu, User, SEO, Elementor-kit abilities.
+- Built-in maintenance mode.
+
+### 1.1.0 — Landing pages + schema
+
+- `np/elementor-build-landing` with 13 new conversion-focused section types.
+- `Schema_Builder` for FAQPage / LocalBusiness / Service / BreadcrumbList / WebPage.
+- Extended Yoast meta (canonical, noindex, OG, Twitter).
+- Sticky WhatsApp + per-page custom CSS/JS.
+
+### 1.0.0 — Initial release
+
+- 16 abilities across content, media, taxonomy, theme and Elementor.
+
+---
+
+## 🧪 Testing
+
+A smoke test that registers all abilities and dry-runs the read-only ones lives in `bin/test-abilities.php`:
+
+```bash
+wp --allow-root --user=YOUR_ADMIN --path=/var/www/wordpress eval-file bin/test-abilities.php
+```
+
+Expected output:
+
+```
+=== Registration ===
+Expected:   49
+Registered: 49
+Missing:    0
+=== Read-only callback dry-runs ===
+[OK  ] np/site-info …
+[OK  ] np/list-posts …
+… (11 OK)
+```
+
+---
+
+## 📜 License
+
+GPL-2.0-or-later — same as WordPress.
+
+---
+
+## 🙋 Author
+
+**Hamza Ali Nabulsi** — [hamzanabulsi.com](https://hamzanabulsi.com)
+Issues and PRs welcome on [GitHub](https://github.com/hamzanabulse/np-mcp-builder/issues).
+
+If this plugin saved you time, a ⭐️ on the repo is the best kind of thank-you.

@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       NP MCP Builder
  * Plugin URI:        https://github.com/hamzaalinabulsi/np-mcp-builder
- * Description:       The complete WordPress + Elementor MCP control plane: 48+ abilities for content, media (AI Gemini images), taxonomy, themes, plugins, menus, users, site settings, permalinks, cache, maintenance mode, Yoast SEO (global + audit + rendered head + schema graph), Elementor kit + raw data + template library, plus one-shot blog and conversion landing-page builders with auto JSON-LD schema. Tabbed admin dashboard with per-ability toggles.
+ * Description:       The complete WordPress + Elementor MCP control plane: 49 abilities for content, media (AI Gemini images), taxonomy, themes, plugins, menus, users, site settings, permalinks, cache, maintenance mode, Yoast SEO (global + audit + rendered head + schema graph), Elementor kit + raw data + template library, plus one-shot blog and conversion landing-page builders with auto JSON-LD schema. Tabbed admin dashboard with per-ability toggles.
  * Version:           1.3.0
  * Requires at least: 6.9
  * Requires PHP:      8.0
