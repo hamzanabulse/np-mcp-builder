@@ -86,6 +86,40 @@ class Seo_Abilities {
             'permission_callback' => static function () { return current_user_can( 'edit_theme_options' ); },
             'meta' => array( 'mcp' => array( 'public' => true ) ),
         ) );
+
+        // ---------- Yoast head (per post / per URL) ----------
+        wp_register_ability( 'np/get-seo-head', array(
+            'label' => 'Get rendered SEO head', 'category' => 'np-seo',
+            'description' => 'Return the Yoast-rendered SEO head for a post (by id) or arbitrary URL: pre-rendered HTML, structured JSON (title, description, robots, canonical, OG, Twitter, og_image array), and full schema.org @graph.',
+            'input_schema' => array(
+                'type' => 'object',
+                'properties' => array(
+                    'post_id' => array( 'type' => 'integer' ),
+                    'url'     => array( 'type' => 'string' ),
+                ),
+            ),
+            'execute_callback'    => array( __CLASS__, 'get_seo_head' ),
+            'permission_callback' => static function () { return current_user_can( 'edit_posts' ); },
+            'meta' => array( 'mcp' => array( 'public' => true ) ),
+        ) );
+
+        // ---------- SEO audit ----------
+        wp_register_ability( 'np/audit-seo', array(
+            'label' => 'Audit SEO of posts/pages', 'category' => 'np-seo',
+            'description' => 'Scan posts/pages and report which are missing critical SEO data: focus keyword, meta description, canonical, OG image, featured image, schema page type. Returns counts plus a per-post issue list. Useful for triaging SEO work.',
+            'input_schema' => array(
+                'type' => 'object',
+                'properties' => array(
+                    'post_type' => array( 'type' => 'string', 'default' => 'any' ),
+                    'status'    => array( 'type' => 'string', 'default' => 'publish' ),
+                    'limit'     => array( 'type' => 'integer', 'default' => 100 ),
+                    'offset'    => array( 'type' => 'integer', 'default' => 0 ),
+                ),
+            ),
+            'execute_callback'    => array( __CLASS__, 'audit_seo' ),
+            'permission_callback' => static function () { return current_user_can( 'edit_posts' ); },
+            'meta' => array( 'mcp' => array( 'public' => true ) ),
+        ) );
     }
 
     /* ==================================================================== */
@@ -209,5 +243,109 @@ class Seo_Abilities {
             \Elementor\Plugin::instance()->files_manager->clear_cache();
         } catch ( \Throwable $e ) { /* noop */ }
         return array( 'kit_id' => $kit_id, 'settings' => $merged );
+    }
+
+    /**
+     * Fetch Yoast's rendered SEO head for a post or URL.
+     *
+     * Uses Yoast's own /yoast/v1/get_head endpoint (read-only, returns
+     * prefabricated HTML + JSON + schema.org @graph) by performing an
+     * internal REST request — no HTTP roundtrip.
+     */
+    public static function get_seo_head( array $input ) {
+        if ( ! defined( 'WPSEO_VERSION' ) ) {
+            return new \WP_Error( 'np_no_yoast', 'Yoast SEO is not installed.' );
+        }
+        $url = '';
+        if ( ! empty( $input['post_id'] ) ) {
+            $url = (string) get_permalink( (int) $input['post_id'] );
+        } elseif ( ! empty( $input['url'] ) ) {
+            $url = esc_url_raw( (string) $input['url'] );
+        }
+        if ( $url === '' ) {
+            return new \WP_Error( 'np_no_target', 'Provide post_id or url.' );
+        }
+        $req = new \WP_REST_Request( 'GET', '/yoast/v1/get_head' );
+        $req->set_param( 'url', $url );
+        $resp = rest_do_request( $req );
+        if ( $resp->is_error() ) {
+            return $resp->as_error();
+        }
+        $data = $resp->get_data();
+        return array(
+            'url'    => $url,
+            'status' => $data['status'] ?? 200,
+            'html'   => $data['html']   ?? '',
+            'json'   => $data['json']   ?? array(),
+        );
+    }
+
+    /**
+     * Walk posts/pages and report missing SEO essentials.
+     */
+    public static function audit_seo( array $input ): array {
+        $args = array(
+            'post_type'      => (string) ( $input['post_type'] ?? 'any' ),
+            'post_status'    => (string) ( $input['status'] ?? 'publish' ),
+            'posts_per_page' => max( 1, min( 500, (int) ( $input['limit'] ?? 100 ) ) ),
+            'offset'         => max( 0, (int) ( $input['offset'] ?? 0 ) ),
+            'orderby'        => 'date',
+            'order'          => 'DESC',
+            'no_found_rows'  => true,
+        );
+        if ( $args['post_type'] === 'any' ) {
+            $args['post_type'] = array_values( array_diff(
+                get_post_types( array( 'public' => true ), 'names' ),
+                array( 'attachment' )
+            ) );
+        }
+        $posts   = get_posts( $args );
+        $missing = array(
+            'focus_keyword'    => 0,
+            'meta_description' => 0,
+            'canonical'        => 0,
+            'og_image'         => 0,
+            'featured_image'   => 0,
+            'schema_page_type' => 0,
+            'short_title'      => 0,
+            'no_content'       => 0,
+        );
+        $rows = array();
+        foreach ( $posts as $p ) {
+            $issues = array();
+            $kw    = (string) get_post_meta( $p->ID, '_yoast_wpseo_focuskw',    true );
+            $desc  = (string) get_post_meta( $p->ID, '_yoast_wpseo_metadesc',   true );
+            $can   = (string) get_post_meta( $p->ID, '_yoast_wpseo_canonical',  true );
+            $ogimg = (string) get_post_meta( $p->ID, '_yoast_wpseo_opengraph-image', true );
+            $sptyp = (string) get_post_meta( $p->ID, '_yoast_wpseo_schema_page_type', true );
+            $thumb = (int) get_post_thumbnail_id( $p->ID );
+
+            if ( $kw === '' )    { $issues[] = 'focus_keyword';    $missing['focus_keyword']++; }
+            if ( $desc === '' )  { $issues[] = 'meta_description'; $missing['meta_description']++; }
+            if ( $can === '' )   { $issues[] = 'canonical';        $missing['canonical']++; }
+            if ( $ogimg === '' && ! $thumb ) { $issues[] = 'og_image'; $missing['og_image']++; }
+            if ( ! $thumb )      { $issues[] = 'featured_image';   $missing['featured_image']++; }
+            if ( $sptyp === '' ) { $issues[] = 'schema_page_type'; $missing['schema_page_type']++; }
+            if ( mb_strlen( $p->post_title ) < 25 ) { $issues[] = 'short_title';   $missing['short_title']++; }
+            if ( str_word_count( wp_strip_all_tags( $p->post_content ) ) < 100 ) { $issues[] = 'no_content'; $missing['no_content']++; }
+
+            if ( $issues ) {
+                $rows[] = array(
+                    'id'        => $p->ID,
+                    'type'      => $p->post_type,
+                    'title'     => $p->post_title,
+                    'edit_url'  => get_edit_post_link( $p->ID, '' ),
+                    'permalink' => get_permalink( $p->ID ),
+                    'issues'    => $issues,
+                    'score'     => 100 - ( count( $issues ) * 12 ),
+                );
+            }
+        }
+        return array(
+            'scanned' => count( $posts ),
+            'with_issues' => count( $rows ),
+            'totals' => $missing,
+            'posts'  => $rows,
+        );
     }
 }

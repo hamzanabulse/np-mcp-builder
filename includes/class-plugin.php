@@ -21,6 +21,7 @@ require_once NP_MCP_BUILDER_DIR . 'includes/abilities/class-site-abilities.php';
 require_once NP_MCP_BUILDER_DIR . 'includes/abilities/class-menu-abilities.php';
 require_once NP_MCP_BUILDER_DIR . 'includes/abilities/class-user-abilities.php';
 require_once NP_MCP_BUILDER_DIR . 'includes/abilities/class-seo-abilities.php';
+require_once NP_MCP_BUILDER_DIR . 'includes/abilities/class-elementor-data-abilities.php';
 require_once NP_MCP_BUILDER_DIR . 'includes/admin/class-settings.php';
 
 class Plugin {
@@ -83,6 +84,15 @@ class Plugin {
         'np/update-yoast-global' => array( 'Seo_Abilities', 'SEO',       'Update Yoast SEO global settings.' ),
         'np/get-elementor-kit'   => array( 'Seo_Abilities', 'Elementor', 'Read Elementor kit globals.' ),
         'np/update-elementor-kit'=> array( 'Seo_Abilities', 'Elementor', 'Update Elementor kit globals.' ),
+        'np/get-seo-head'        => array( 'Seo_Abilities', 'SEO',       'Get Yoast-rendered SEO head (HTML + JSON + schema graph) for a post or URL.' ),
+        'np/audit-seo'           => array( 'Seo_Abilities', 'SEO',       'Audit posts/pages for missing focus keyword, meta description, OG image, schema, etc.' ),
+        // Elementor data + templates
+        'np/elementor-get-data'        => array( 'Elementor_Data_Abilities', 'Elementor', 'Read raw Elementor data of a post.' ),
+        'np/elementor-set-data'        => array( 'Elementor_Data_Abilities', 'Elementor', 'Write raw Elementor data to a post.' ),
+        'np/elementor-list-templates'  => array( 'Elementor_Data_Abilities', 'Elementor', 'List Elementor library templates.' ),
+        'np/elementor-save-as-template'=> array( 'Elementor_Data_Abilities', 'Elementor', 'Save a post as a reusable Elementor template.' ),
+        'np/elementor-apply-template'  => array( 'Elementor_Data_Abilities', 'Elementor', 'Apply an Elementor template to a post.' ),
+        'np/elementor-regenerate-css'  => array( 'Elementor_Data_Abilities', 'Elementor', 'Regenerate Elementor CSS files for a post or globally.' ),
     );
 
     public static function instance(): Plugin {

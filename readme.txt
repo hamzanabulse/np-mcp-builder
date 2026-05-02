@@ -4,7 +4,7 @@ Tags: mcp, ai, elementor, gemini, abilities-api, claude, openai
 Requires at least: 6.9
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 1.2.0
+Stable tag: 1.3.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -54,6 +54,11 @@ Yes — only the three `np/elementor-*` abilities require Elementor. All other a
 `np/generate-image` is Gemini-only at the moment. The other abilities don't need any external API.
 
 == Changelog ==
+
+= 1.3.0 =
+* New SEO abilities: `np/get-seo-head` (returns Yoast-rendered SEO head HTML, structured JSON and full schema.org @graph for any post or URL via Yoast's `/yoast/v1/get_head` REST API) and `np/audit-seo` (scans posts/pages and reports missing focus keyword, meta description, canonical, OG image, featured image, schema page type, short title, thin content - per-post issue list with score).
+* New Elementor data abilities: `np/elementor-get-data`, `np/elementor-set-data` (raw read/write of `_elementor_data`), `np/elementor-list-templates`, `np/elementor-save-as-template`, `np/elementor-apply-template` (replace or append), `np/elementor-regenerate-css`.
+* Plugin total now 48+ abilities.
 
 = 1.2.0 =
 * New top-level admin dashboard with tabs: Overview, Abilities, Tools, Settings, Maintenance, About.
