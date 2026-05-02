@@ -4,7 +4,7 @@ Tags: mcp, ai, elementor, gemini, abilities-api, claude, openai
 Requires at least: 6.9
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 1.1.0
+Stable tag: 1.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -54,6 +54,18 @@ Yes — only the three `np/elementor-*` abilities require Elementor. All other a
 `np/generate-image` is Gemini-only at the moment. The other abilities don't need any external API.
 
 == Changelog ==
+
+= 1.2.0 =
+* New top-level admin dashboard with tabs: Overview, Abilities, Tools, Settings, Maintenance, About.
+* Per-ability on/off toggles - disabled abilities are not registered with the Abilities API and not exposed via MCP.
+* New Site abilities: list/activate/deactivate plugins, list/switch themes, get/update site settings, update permalinks, clear caches, maintenance mode, system info.
+* New Menu abilities: list/create/update/delete nav menus, assign theme location.
+* New User abilities: list/create/update/delete users (with reassign).
+* New SEO abilities: get/update Yoast SEO global settings (organization/person, social, sitemap, breadcrumbs).
+* New Elementor kit abilities: get/update active kit (global colors, typography).
+* Built-in maintenance mode: 503 page for visitors, admins still see the site.
+* One-click cache clearing from Tools tab (Elementor + object cache + transients).
+* Plugin total now 40+ abilities.
 
 = 1.1.0 =
 * New ability `np/elementor-build-landing`: one-shot conversion-focused landing pages.
