@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src=".github/social-preview.png" alt="NP MCP Builder — WordPress + Elementor MCP Control Plane" width="800">
+
 # NP MCP Builder
 
 **The complete WordPress + Elementor MCP control plane.**
@@ -12,6 +14,7 @@
 [![Gemini](https://img.shields.io/badge/Google%20Gemini-AI%20images-4285F4?logo=googlegemini&logoColor=white)](https://ai.google.dev/)
 [![License: GPL v2+](https://img.shields.io/badge/License-GPLv2%2B-blue.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-1.3.0-success)](https://github.com/hamzanabulse/np-mcp-builder/releases)
+[![Security audit](https://img.shields.io/badge/PHPCS--security-passing-success)](docs/SECURITY-AUDIT.md)
 
 [Installation](#-installation) • [Abilities](#-abilities-49-tools) • [Examples](#-examples) • [Architecture](#-architecture) • [Roadmap](#-roadmap)
 
@@ -349,6 +352,10 @@ Returns the new attachment ID, URL, dimensions, and full SEO metadata.
 - `np/delete-user` refuses to delete the **current** user.
 - Disabled abilities are fully unregistered — they cannot be invoked even by direct REST call.
 - All HTML output (maintenance page, schema, custom CSS/JS) is escaped through `esc_html` / `wp_strip_all_tags` / `wp_kses_post` as appropriate.
+
+The plugin ships its own audit harness at [`bin/audit-security.sh`](bin/audit-security.sh).
+The full report and capability matrix live in [`docs/SECURITY-AUDIT.md`](docs/SECURITY-AUDIT.md)
+and the disclosure policy in [`SECURITY.md`](SECURITY.md).
 
 ---
 
