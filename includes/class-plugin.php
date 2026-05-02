@@ -9,6 +9,7 @@ namespace NP_MCP_Builder;
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
+require_once NP_MCP_BUILDER_DIR . 'includes/class-license.php';
 require_once NP_MCP_BUILDER_DIR . 'includes/class-image-generator.php';
 require_once NP_MCP_BUILDER_DIR . 'includes/class-schema-builder.php';
 require_once NP_MCP_BUILDER_DIR . 'includes/class-section-builder.php';
@@ -128,6 +129,10 @@ class Plugin {
         $disabled = isset( $opts['disabled_abilities'] ) && is_array( $opts['disabled_abilities'] )
             ? $opts['disabled_abilities'] : array();
         $all = array_keys( self::ABILITY_MAP );
+        // License gate: if not Pro, restrict to free tier.
+        if ( ! License::is_pro() ) {
+            $all = array_values( array_intersect( $all, License::FREE_ABILITIES ) );
+        }
         return array_values( array_diff( $all, $disabled ) );
     }
 

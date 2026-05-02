@@ -25,6 +25,9 @@ class Settings {
         add_action( 'admin_enqueue_scripts', array( __CLASS__, 'assets' ) );
         add_action( 'admin_post_np_mcp_clear_cache',         array( __CLASS__, 'handle_clear_cache' ) );
         add_action( 'admin_post_np_mcp_toggle_maintenance',  array( __CLASS__, 'handle_toggle_maintenance' ) );
+        add_action( 'admin_post_np_mcp_license_activate',    array( __CLASS__, 'handle_license_activate' ) );
+        add_action( 'admin_post_np_mcp_license_deactivate',  array( __CLASS__, 'handle_license_deactivate' ) );
+        add_action( 'admin_post_np_mcp_license_refresh',     array( __CLASS__, 'handle_license_refresh' ) );
         add_action( 'admin_notices',       array( __CLASS__, 'maintenance_notice' ) );
         add_filter( 'pre_update_option_' . self::OPTION_NAME, array( __CLASS__, 'pre_update_compute_disabled' ), 10, 2 );
     }
@@ -45,6 +48,7 @@ class Settings {
         add_submenu_page( self::PAGE_SLUG, __( 'Abilities', 'np-mcp-builder' ),    __( 'Abilities', 'np-mcp-builder' ),    $cap, self::PAGE_SLUG . '&tab=abilities',   array( __CLASS__, 'render' ) );
         add_submenu_page( self::PAGE_SLUG, __( 'Tools', 'np-mcp-builder' ),        __( 'Tools', 'np-mcp-builder' ),        $cap, self::PAGE_SLUG . '&tab=tools',       array( __CLASS__, 'render' ) );
         add_submenu_page( self::PAGE_SLUG, __( 'Settings', 'np-mcp-builder' ),     __( 'Settings', 'np-mcp-builder' ),     $cap, self::PAGE_SLUG . '&tab=settings',    array( __CLASS__, 'render' ) );
+        add_submenu_page( self::PAGE_SLUG, __( 'License', 'np-mcp-builder' ),      __( 'License', 'np-mcp-builder' ),      $cap, self::PAGE_SLUG . '&tab=license',     array( __CLASS__, 'render' ) );
         add_submenu_page( self::PAGE_SLUG, __( 'Maintenance', 'np-mcp-builder' ),  __( 'Maintenance', 'np-mcp-builder' ),  $cap, self::PAGE_SLUG . '&tab=maintenance', array( __CLASS__, 'render' ) );
         add_submenu_page( self::PAGE_SLUG, __( 'About', 'np-mcp-builder' ),        __( 'About', 'np-mcp-builder' ),        $cap, self::PAGE_SLUG . '&tab=about',       array( __CLASS__, 'render' ) );
     }
@@ -156,6 +160,7 @@ class Settings {
             case 'abilities':   self::tab_abilities(); break;
             case 'tools':       self::tab_tools(); break;
             case 'settings':    self::tab_settings(); break;
+            case 'license':     self::tab_license(); break;
             case 'maintenance': self::tab_maintenance(); break;
             case 'about':       self::tab_about(); break;
             default:            self::tab_overview(); break;
@@ -179,6 +184,7 @@ class Settings {
             'abilities'   => array( __( 'Abilities', 'np-mcp-builder' ),   'admin-generic' ),
             'tools'       => array( __( 'Tools', 'np-mcp-builder' ),       'admin-tools' ),
             'settings'    => array( __( 'Settings', 'np-mcp-builder' ),    'admin-settings' ),
+            'license'     => array( __( 'License', 'np-mcp-builder' ),     'admin-network' ),
             'maintenance' => array( __( 'Maintenance', 'np-mcp-builder' ), 'warning' ),
             'about'       => array( __( 'About', 'np-mcp-builder' ),       'info' ),
         );
@@ -443,5 +449,120 @@ class Settings {
         echo '<p><strong>' . esc_html__( 'Source', 'np-mcp-builder' ) . ':</strong> <a href="https://github.com/hamzanabulse/np-mcp-builder" target="_blank" rel="noopener">github.com/hamzanabulse/np-mcp-builder</a></p>';
         echo '<p><strong>' . esc_html__( 'Author', 'np-mcp-builder' ) . ':</strong> Hamza Ali Nabulsi · <a href="https://hamzanabulsi.com" target="_blank" rel="noopener">hamzanabulsi.com</a></p>';
         echo '</div>';
+    }
+
+    /* ---------------------------------------------------------------- */
+    /* LICENSE                                                          */
+    /* ---------------------------------------------------------------- */
+    private static function tab_license(): void {
+        $status = \NP_MCP_Builder\License::get_status();
+        $is_pro = (bool) $status['is_pro'];
+        $free   = \NP_MCP_Builder\License::FREE_ABILITIES;
+        $total  = count( \NP_MCP_Builder\Plugin::ABILITY_MAP );
+
+        echo '<div class="np-mcp-panel"><h2><span class="dashicons dashicons-admin-network"></span> ' . esc_html__( 'License', 'np-mcp-builder' ) . '</h2>';
+
+        if ( $is_pro ) {
+            echo '<div class="notice notice-success inline"><p><strong>' . esc_html__( 'Pro license active.', 'np-mcp-builder' ) . '</strong> ';
+            echo esc_html( sprintf(
+                /* translators: 1: customer name 2: plan 3: expiry date */
+                __( 'Licensed to %1$s · plan %2$s · expires %3$s', 'np-mcp-builder' ),
+                $status['customer'] ?: '—',
+                $status['plan'] ?: '—',
+                $status['expires_at'] ? gmdate( 'Y-m-d', $status['expires_at'] ) : '—'
+            ) );
+            echo '</p></div>';
+            echo '<p>' . esc_html( sprintf(
+                /* translators: 1: total abilities */
+                __( 'All %d abilities are available.', 'np-mcp-builder' ),
+                $total
+            ) ) . '</p>';
+
+            echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline-block">';
+            wp_nonce_field( 'np_mcp_license_refresh' );
+            echo '<input type="hidden" name="action" value="np_mcp_license_refresh">';
+            submit_button( __( 'Refresh now', 'np-mcp-builder' ), 'secondary', 'submit', false );
+            echo '</form> ';
+
+            echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline-block;margin-left:8px" onsubmit="return confirm(\'' . esc_js( __( 'Deactivate this site? You can re-activate using the same key.', 'np-mcp-builder' ) ) . '\')">';
+            wp_nonce_field( 'np_mcp_license_deactivate' );
+            echo '<input type="hidden" name="action" value="np_mcp_license_deactivate">';
+            submit_button( __( 'Deactivate this site', 'np-mcp-builder' ), 'delete', 'submit', false );
+            echo '</form>';
+        } else {
+            echo '<div class="notice notice-info inline"><p><strong>' . esc_html__( 'Free tier.', 'np-mcp-builder' ) . '</strong> ';
+            echo esc_html( sprintf(
+                /* translators: 1: free count 2: total */
+                __( '%1$d of %2$d abilities are enabled. Activate a Pro license to unlock the rest.', 'np-mcp-builder' ),
+                count( $free ),
+                $total
+            ) );
+            echo '</p></div>';
+
+            if ( $status['last_msg'] ) {
+                echo '<div class="notice notice-warning inline"><p><strong>' . esc_html__( 'Last status:', 'np-mcp-builder' ) . '</strong> ' . esc_html( $status['last_msg'] ) . '</p></div>';
+            }
+
+            echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+            wp_nonce_field( 'np_mcp_license_activate' );
+            echo '<input type="hidden" name="action" value="np_mcp_license_activate">';
+            echo '<table class="form-table"><tbody>';
+            echo '<tr><th><label for="np_mcp_license_key">' . esc_html__( 'License key', 'np-mcp-builder' ) . '</label></th>';
+            echo '<td><input id="np_mcp_license_key" name="license_key" class="regular-text code" placeholder="NPMCP-XXXX-XXXX-XXXX-XXXX" required style="font-family:monospace;letter-spacing:1px"></td></tr>';
+            echo '</tbody></table>';
+            submit_button( __( 'Activate license', 'np-mcp-builder' ) );
+            echo '</form>';
+
+            echo '<h3>' . esc_html__( 'How to get a key', 'np-mcp-builder' ) . '</h3>';
+            echo '<p>' . esc_html__( 'Email Hamza for a Pro license key:', 'np-mcp-builder' ) . '</p>';
+            echo '<p><a class="button button-primary" href="mailto:hamzaalinabulsi@gmail.com?subject=NP%20MCP%20Builder%20Pro%20license&body=Hi%20Hamza%2C%0A%0AI%27d%20like%20a%20Pro%20license%20for%20NP%20MCP%20Builder.%0A%0ASite%20URL%3A%20' . esc_attr( rawurlencode( home_url() ) ) . '%0AName%3A%20%0AUse-case%3A%20%0A%0AThanks">' . esc_html__( 'Email hamzaalinabulsi@gmail.com', 'np-mcp-builder' ) . '</a> ';
+            echo ' &nbsp; <a class="button" href="https://hamzanabulsi.com" target="_blank" rel="noopener">hamzanabulsi.com</a></p>';
+        }
+
+        // Free abilities list.
+        echo '<h3>' . esc_html__( 'Free tier (always available)', 'np-mcp-builder' ) . '</h3>';
+        echo '<ul style="list-style:disc;margin-left:24px;column-count:2;max-width:760px">';
+        foreach ( $free as $tool ) {
+            $desc = \NP_MCP_Builder\Plugin::ABILITY_MAP[ $tool ][2] ?? '';
+            echo '<li><code>' . esc_html( $tool ) . '</code> — ' . esc_html( $desc ) . '</li>';
+        }
+        echo '</ul>';
+
+        echo '<p style="color:#888;font-size:12px"><em>' . esc_html__( 'Tokens are signed with Ed25519 and verified locally. The plugin checks in once a week and keeps working offline for 14 days.', 'np-mcp-builder' ) . '</em></p>';
+
+        echo '</div>';
+    }
+
+    public static function handle_license_activate(): void {
+        if ( ! current_user_can( 'manage_options' ) ) { wp_die( 'forbidden' ); }
+        check_admin_referer( 'np_mcp_license_activate' );
+        $key = isset( $_POST['license_key'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['license_key'] ) ) : '';
+        $res = \NP_MCP_Builder\License::activate( $key );
+        $args = array( 'page' => self::PAGE_SLUG, 'tab' => 'license' );
+        if ( is_wp_error( $res ) ) {
+            update_option( \NP_MCP_Builder\License::OPTION_STATUS, $res->get_error_message(), false );
+            $args['lic_err'] = 1;
+        } else {
+            $args['lic_ok'] = 1;
+        }
+        wp_safe_redirect( add_query_arg( $args, admin_url( 'admin.php' ) ) );
+        exit;
+    }
+
+    public static function handle_license_deactivate(): void {
+        if ( ! current_user_can( 'manage_options' ) ) { wp_die( 'forbidden' ); }
+        check_admin_referer( 'np_mcp_license_deactivate' );
+        \NP_MCP_Builder\License::deactivate();
+        wp_safe_redirect( add_query_arg( array( 'page' => self::PAGE_SLUG, 'tab' => 'license', 'lic_off' => 1 ), admin_url( 'admin.php' ) ) );
+        exit;
+    }
+
+    public static function handle_license_refresh(): void {
+        if ( ! current_user_can( 'manage_options' ) ) { wp_die( 'forbidden' ); }
+        check_admin_referer( 'np_mcp_license_refresh' );
+        delete_option( \NP_MCP_Builder\License::OPTION_LAST ); // force.
+        \NP_MCP_Builder\License::maybe_refresh();
+        wp_safe_redirect( add_query_arg( array( 'page' => self::PAGE_SLUG, 'tab' => 'license', 'lic_refreshed' => 1 ), admin_url( 'admin.php' ) ) );
+        exit;
     }
 }
