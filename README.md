@@ -1,6 +1,6 @@
 # NP MCP Builder
 
-A WordPress plugin that turns your site into a Model Context Protocol (MCP) server, exposing high‑level content, taxonomy, theme and Elementor operations as callable abilities. Built on the WordPress Abilities API (6.9+) and the [`mcp-adapter`](https://github.com/Automattic/mcp-adapter) plugin.
+A WordPress plugin that turns your site into a Model Context Protocol (MCP) server, exposing high‑level content, taxonomy, theme and Elementor operations as callable abilities. Built on the WordPress Abilities API (6.9+) and the official [`mcp-adapter`](https://github.com/WordPress/mcp-adapter) plugin.
 
 [![WordPress](https://img.shields.io/badge/WordPress-6.9%2B-21759b)](https://wordpress.org/) [![PHP](https://img.shields.io/badge/PHP-8.0%2B-777bb4)](https://www.php.net/) [![License](https://img.shields.io/badge/License-GPLv2%2B-green.svg)](LICENSE) [![Elementor](https://img.shields.io/badge/Elementor-compatible-92003B)](https://elementor.com/)
 
@@ -26,15 +26,30 @@ A single call to `np/elementor-build-blog` produces a complete, styled Elementor
 - **Capability‑checked permissions** on every ability.
 - **Namespaced under** `NP_MCP_Builder\` for clean integration with other plugins.
 
+## How it fits together
+
+WordPress 6.9 ships the **Abilities API** as a core registry: a way to declare typed, permission‑checked operations identified by names like `np/create-post`. The Abilities API itself does **not** expose anything over HTTP — it is just an in‑process registry.
+
+The official **[`mcp-adapter`](https://github.com/WordPress/mcp-adapter)** plugin (maintained under the `WordPress/` GitHub organisation) is the bridge that takes registered abilities and exposes them as MCP tools at `/wp-json/mcp/v1/`, so MCP clients (Claude Desktop, Cursor, etc.) can discover and call them.
+
+```
+  NP MCP Builder        ──▶  registers 16 abilities
+  Abilities API (core)  ──▶  in‑process registry
+  mcp-adapter plugin    ──▶  exposes abilities as MCP tools over HTTP
+  MCP client            ──▶  discovers and calls the tools
+```
+
+Without `mcp-adapter` the abilities are still registered and callable from PHP via `wp_get_ability( 'np/...' )->execute( ... )`, but they will not be reachable from an external MCP client.
+
 ## Requirements
 
-| Component | Version |
-|----------|---------|
-| WordPress | 6.9 or later (Abilities API) |
-| PHP | 8.0 or later |
-| [`mcp-adapter`](https://github.com/Automattic/mcp-adapter) plugin | latest |
-| Elementor | optional — required only by the `np/elementor-*` abilities |
-| Google AI Studio API key | optional — required only by `np/generate-image` |
+| Component | Version | Purpose |
+|----------|---------|---------|
+| WordPress | 6.9 or later | Abilities API |
+| PHP | 8.0 or later | typed properties, named arguments |
+| [`mcp-adapter`](https://github.com/WordPress/mcp-adapter) | latest | exposes abilities as MCP tools (only needed for remote MCP clients) |
+| Elementor | optional | required only by the `np/elementor-*` abilities |
+| Google AI Studio API key | optional | required only by `np/generate-image` |
 
 ## Installation
 

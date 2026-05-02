@@ -28,7 +28,7 @@ The Elementor abilities accept a friendly section schema (hero, heading, paragra
 
 * WordPress 6.9+ (Abilities API)
 * PHP 8.0+
-* [mcp-adapter](https://github.com/Automattic/mcp-adapter) plugin (for the MCP server endpoint)
+* [mcp-adapter](https://github.com/WordPress/mcp-adapter) plugin (only required to expose the abilities as MCP tools over HTTP)
 * Elementor (only required for the `np/elementor-*` abilities)
 * A Google AI Studio API key (only required for `np/generate-image`)
 
