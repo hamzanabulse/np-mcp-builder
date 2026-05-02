@@ -2,8 +2,8 @@
 /**
  * Plugin Name:       NP MCP Builder
  * Plugin URI:        https://github.com/hamzaalinabulsi/np-mcp-builder
- * Description:       Mega MCP abilities for WordPress + Elementor: build complete styled blog posts in one call, generate AI images (Gemini) with full SEO metadata, manage taxonomies, post CRUD, theme customizer, and convert Markdown to Elementor — all exposed as MCP tools for Claude/Cursor/any MCP client.
- * Version:           1.0.0
+ * Description:       Mega MCP abilities for WordPress + Elementor: one‑shot blog posts AND conversion‑focused landing pages (hero, problem agitation, benefits grid, steps, testimonials, FAQ, stats, pricing, author bio, guarantee, CTAs) with auto JSON‑LD schema (FAQ, LocalBusiness, Service, BreadcrumbList, WebPage), full Yoast SEO (focus keyword, meta, canonical, OG, Twitter, noindex), AI images (Gemini → WebP), taxonomies, post CRUD, theme customizer, Markdown → Elementor — all exposed as MCP tools.
+ * Version:           1.1.0
  * Requires at least: 6.9
  * Requires PHP:      8.0
  * Author:            Hamza Ali Nabulsi
@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-define( 'NP_MCP_BUILDER_VERSION', '1.0.0' );
+define( 'NP_MCP_BUILDER_VERSION', '1.1.0' );
 define( 'NP_MCP_BUILDER_FILE', __FILE__ );
 define( 'NP_MCP_BUILDER_DIR', plugin_dir_path( __FILE__ ) );
 define( 'NP_MCP_BUILDER_URL', plugin_dir_url( __FILE__ ) );

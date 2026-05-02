@@ -8,6 +8,7 @@
 namespace NP_MCP_Builder\Abilities;
 
 use NP_MCP_Builder\Section_Builder;
+use NP_MCP_Builder\Schema_Builder;
 use NP_MCP_Builder\Image_Generator;
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
@@ -35,11 +36,62 @@ class Elementor_Abilities {
                     'featured_image_alt'     => array( 'type' => 'string' ),
                     'yoast_focus_keyword'    => array( 'type' => 'string' ),
                     'yoast_meta_description' => array( 'type' => 'string' ),
+                    'yoast_title'              => array( 'type' => 'string' ),
+                    'yoast_canonical'          => array( 'type' => 'string' ),
+                    'yoast_noindex'            => array( 'type' => 'boolean' ),
+                    'yoast_og_title'           => array( 'type' => 'string' ),
+                    'yoast_og_description'     => array( 'type' => 'string' ),
+                    'yoast_og_image_id'        => array( 'type' => 'integer' ),
+                    'yoast_twitter_title'      => array( 'type' => 'string' ),
+                    'yoast_twitter_description'=> array( 'type' => 'string' ),
                     'sections' => array( 'type' => 'array', 'items' => array( 'type' => 'object' ) ),
                 ),
             ),
             'execute_callback'    => array( __CLASS__, 'build_blog' ),
             'permission_callback' => static function () { return current_user_can( 'edit_posts' ); },
+            'meta' => array( 'mcp' => array( 'public' => true ) ),
+        ) );
+
+        wp_register_ability( 'np/elementor-build-landing', array(
+            'label'       => 'Build Elementor Landing Page',
+            'description' => 'One-shot landing page builder with conversion-focused section types (hero, problem agitation, benefits/features grid, steps, testimonials, FAQ, stats, pricing, author bio, guarantee, two-column rows, CTAs) plus auto-generated JSON-LD schema (FAQ, LocalBusiness/ProfessionalService, Service, BreadcrumbList, WebPage), Yoast SEO (focus keyword, meta description, canonical, OG, Twitter, noindex), AI-generated featured + section images, optional custom CSS/JS, sticky WhatsApp button. Defaults to a published page.',
+            'category'    => 'np-elementor',
+            'input_schema' => array(
+                'type' => 'object', 'required' => array( 'title', 'sections' ),
+                'properties' => array(
+                    'post_id'   => array( 'type' => 'integer' ),
+                    'post_type' => array( 'type' => 'string', 'enum' => array( 'post', 'page' ), 'default' => 'page' ),
+                    'title'     => array( 'type' => 'string' ),
+                    'slug'      => array( 'type' => 'string' ),
+                    'status'    => array( 'type' => 'string', 'enum' => array( 'publish', 'draft', 'pending', 'private' ), 'default' => 'publish' ),
+                    'excerpt'   => array( 'type' => 'string' ),
+                    'sections'  => array( 'type' => 'array', 'items' => array( 'type' => 'object' ) ),
+                    'featured_image_id'      => array( 'type' => 'integer' ),
+                    'featured_image_prompt'  => array( 'type' => 'string' ),
+                    'featured_image_alt'     => array( 'type' => 'string' ),
+                    'yoast_focus_keyword'    => array( 'type' => 'string' ),
+                    'yoast_meta_description' => array( 'type' => 'string' ),
+                    'yoast_title'              => array( 'type' => 'string' ),
+                    'yoast_canonical'          => array( 'type' => 'string' ),
+                    'yoast_noindex'            => array( 'type' => 'boolean' ),
+                    'yoast_og_title'           => array( 'type' => 'string' ),
+                    'yoast_og_description'     => array( 'type' => 'string' ),
+                    'yoast_og_image_id'        => array( 'type' => 'integer' ),
+                    'yoast_twitter_title'      => array( 'type' => 'string' ),
+                    'yoast_twitter_description'=> array( 'type' => 'string' ),
+                    'faqs'              => array( 'type' => 'array', 'items' => array( 'type' => 'object' ) ),
+                    'business'          => array( 'type' => 'object' ),
+                    'service'           => array( 'type' => 'object' ),
+                    'breadcrumbs'       => array( 'type' => 'array', 'items' => array( 'type' => 'object' ) ),
+                    'web_page'          => array( 'type' => 'object' ),
+                    'extra_schema'      => array( 'type' => 'array', 'items' => array( 'type' => 'string' ) ),
+                    'custom_css'        => array( 'type' => 'string' ),
+                    'custom_js'         => array( 'type' => 'string' ),
+                    'sticky_whatsapp'   => array( 'type' => 'string' ),
+                ),
+            ),
+            'execute_callback'    => array( __CLASS__, 'build_landing' ),
+            'permission_callback' => static function () { return current_user_can( 'edit_pages' ) || current_user_can( 'edit_posts' ); },
             'meta' => array( 'mcp' => array( 'public' => true ) ),
         ) );
 
@@ -158,6 +210,34 @@ class Elementor_Abilities {
         }
         if ( ! empty( $input['yoast_meta_description'] ) ) {
             update_post_meta( $post_id, '_yoast_wpseo_metadesc', sanitize_textarea_field( (string) $input['yoast_meta_description'] ) );
+        }
+        // Extended Yoast support (no-op when Yoast is not installed but the
+        // meta values stay on the post and become active once Yoast is enabled).
+        if ( ! empty( $input['yoast_title'] ) ) {
+            update_post_meta( $post_id, '_yoast_wpseo_title', sanitize_text_field( (string) $input['yoast_title'] ) );
+        }
+        if ( ! empty( $input['yoast_canonical'] ) ) {
+            update_post_meta( $post_id, '_yoast_wpseo_canonical', esc_url_raw( (string) $input['yoast_canonical'] ) );
+        }
+        if ( isset( $input['yoast_noindex'] ) ) {
+            update_post_meta( $post_id, '_yoast_wpseo_meta-robots-noindex', $input['yoast_noindex'] ? '1' : '2' );
+        }
+        if ( ! empty( $input['yoast_og_title'] ) ) {
+            update_post_meta( $post_id, '_yoast_wpseo_opengraph-title', sanitize_text_field( (string) $input['yoast_og_title'] ) );
+        }
+        if ( ! empty( $input['yoast_og_description'] ) ) {
+            update_post_meta( $post_id, '_yoast_wpseo_opengraph-description', sanitize_textarea_field( (string) $input['yoast_og_description'] ) );
+        }
+        if ( ! empty( $input['yoast_og_image_id'] ) ) {
+            update_post_meta( $post_id, '_yoast_wpseo_opengraph-image-id', (int) $input['yoast_og_image_id'] );
+            $u = wp_get_attachment_url( (int) $input['yoast_og_image_id'] );
+            if ( $u ) { update_post_meta( $post_id, '_yoast_wpseo_opengraph-image', esc_url_raw( $u ) ); }
+        }
+        if ( ! empty( $input['yoast_twitter_title'] ) ) {
+            update_post_meta( $post_id, '_yoast_wpseo_twitter-title', sanitize_text_field( (string) $input['yoast_twitter_title'] ) );
+        }
+        if ( ! empty( $input['yoast_twitter_description'] ) ) {
+            update_post_meta( $post_id, '_yoast_wpseo_twitter-description', sanitize_textarea_field( (string) $input['yoast_twitter_description'] ) );
         }
 
         // Build Elementor data.
@@ -317,5 +397,86 @@ class Elementor_Abilities {
             if ( isset( $input[ $k ] ) ) { $payload[ $k ] = $input[ $k ]; }
         }
         return self::build_blog( $payload );
+    }
+
+    /**
+     * Build a complete Elementor landing page in a single call.
+     *
+     * Wraps build_blog() with conversion-focused defaults (post_type=page),
+     * auto-generates JSON-LD schema from friendly inputs (faqs, business,
+     * service, breadcrumbs, web_page), and stores optional custom CSS/JS
+     * + sticky WhatsApp button as post meta that the plugin injects on the
+     * front-end.
+     */
+    public static function build_landing( array $input ) {
+        // Default to a published page.
+        if ( empty( $input['post_type'] ) ) { $input['post_type'] = 'page'; }
+        if ( empty( $input['status'] ) )    { $input['status']    = 'publish'; }
+
+        // Run the blog builder, which handles post creation, sections, image,
+        // taxonomies, Yoast meta, and Elementor data.
+        $result = self::build_blog( $input );
+        if ( is_wp_error( $result ) ) { return $result; }
+        $post_id = (int) $result['post_id'];
+
+        // Collect schema JSON-LD strings.
+        $schemas = array();
+        if ( ! empty( $input['faqs'] ) && is_array( $input['faqs'] ) ) {
+            $schemas[] = Schema_Builder::faq( $input['faqs'] );
+        }
+        if ( ! empty( $input['business'] ) && is_array( $input['business'] ) ) {
+            $schemas[] = Schema_Builder::local_business( $input['business'] );
+        }
+        if ( ! empty( $input['service'] ) && is_array( $input['service'] ) ) {
+            $schemas[] = Schema_Builder::service( $input['service'] );
+        }
+        if ( ! empty( $input['breadcrumbs'] ) && is_array( $input['breadcrumbs'] ) ) {
+            $schemas[] = Schema_Builder::breadcrumbs( $input['breadcrumbs'] );
+        }
+        if ( ! empty( $input['web_page'] ) && is_array( $input['web_page'] ) ) {
+            // Inherit url/name from the post when not provided.
+            $wp = $input['web_page'];
+            if ( empty( $wp['url'] ) )      { $wp['url']      = (string) get_permalink( $post_id ); }
+            if ( empty( $wp['name'] ) )     { $wp['name']     = (string) $input['title']; }
+            if ( empty( $wp['headline'] ) ) { $wp['headline'] = (string) $input['title']; }
+            $schemas[] = Schema_Builder::web_page( $wp );
+        }
+        if ( ! empty( $input['extra_schema'] ) && is_array( $input['extra_schema'] ) ) {
+            foreach ( $input['extra_schema'] as $raw ) {
+                if ( is_string( $raw ) && $raw !== '' ) { $schemas[] = $raw; }
+            }
+        }
+        if ( $schemas ) {
+            update_post_meta( $post_id, '_np_mcp_schema_jsonld', $schemas );
+        } else {
+            delete_post_meta( $post_id, '_np_mcp_schema_jsonld' );
+        }
+
+        // Custom CSS / JS.
+        if ( ! empty( $input['custom_css'] ) ) {
+            update_post_meta( $post_id, '_np_mcp_custom_css', (string) $input['custom_css'] );
+        } else {
+            delete_post_meta( $post_id, '_np_mcp_custom_css' );
+        }
+
+        // Build sticky WhatsApp + scroll-progress JS if requested.
+        $js_parts = array();
+        if ( ! empty( $input['sticky_whatsapp'] ) ) {
+            $phone = preg_replace( '/[^0-9]/', '', (string) $input['sticky_whatsapp'] );
+            $js_parts[] = "var a=document.createElement('a');a.href='https://wa.me/" . $phone . "';a.target='_blank';a.rel='noopener';a.setAttribute('aria-label','WhatsApp');a.style.cssText='position:fixed;bottom:24px;right:24px;width:56px;height:56px;border-radius:999px;background:#25D366;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:9999;color:#fff;font-size:28px;text-decoration:none;';a.innerHTML='\u2709';document.body.appendChild(a);";
+        }
+        if ( ! empty( $input['custom_js'] ) ) {
+            $js_parts[] = (string) $input['custom_js'];
+        }
+        if ( $js_parts ) {
+            update_post_meta( $post_id, '_np_mcp_custom_js', implode( "\n", $js_parts ) );
+        } else {
+            delete_post_meta( $post_id, '_np_mcp_custom_js' );
+        }
+
+        $result['schemas_injected'] = count( $schemas );
+        $result['has_custom_css']   = ! empty( $input['custom_css'] );
+        $result['has_custom_js']    = ! empty( $input['custom_js'] ) || ! empty( $input['sticky_whatsapp'] );
+        return $result;
     }
 }

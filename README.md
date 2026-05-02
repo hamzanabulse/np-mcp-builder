@@ -12,7 +12,7 @@ A WordPress plugin that turns your site into a Model Context Protocol (MCP) serv
 
 Most MCP integrations for WordPress expose dozens of low‑level REST endpoints — one tool per CRUD operation — which forces the client to chain many calls and leak implementation details. NP MCP Builder takes the opposite approach: **a small, opinionated set of high‑level abilities** that match real editorial workflows.
 
-A single call to `np/elementor-build-blog` produces a complete, styled Elementor post with featured image, categories, tags, focus keyword, meta description and a full layout. A single call to `np/elementor-from-markdown` converts a Markdown article into a styled Elementor page. A single call to `np/generate-image` produces a generated, resized, WebP‑optimised image with full Media Library SEO metadata.
+A single call to `np/elementor-build-blog` produces a complete, styled Elementor post with featured image, categories, tags, focus keyword, meta description and a full layout. A single call to `np/elementor-build-landing` produces a conversion‑focused landing page (hero, problem agitation, benefits grid, steps, testimonials, FAQ, pricing, guarantee, CTAs) with auto JSON‑LD schema (FAQ, LocalBusiness, Service, BreadcrumbList, WebPage) and full Yoast SEO. A single call to `np/elementor-from-markdown` converts a Markdown article into a styled Elementor page. A single call to `np/generate-image` produces a generated, resized, WebP‑optimised image with full Media Library SEO metadata.
 
 ## Features
 
@@ -104,14 +104,16 @@ Authenticate using a WordPress Application Password. Example client config (Clau
 | `np/set-theme-mod` | Theme | Set a Customizer value. |
 | `np/get-theme-mod` | Theme | Read a Customizer value. |
 | `np/elementor-build-blog` | Elementor | Build a full styled Elementor post in one call. |
+| `np/elementor-build-landing` | Elementor | Build a conversion‑focused landing page in one call — hero, problem agitation, benefits grid, steps, testimonials, FAQ, stats, pricing, guarantee + auto JSON‑LD schema (FAQ, LocalBusiness, Service, BreadcrumbList, WebPage), full Yoast SEO, optional sticky WhatsApp button, custom CSS/JS. |
 | `np/elementor-append-sections` | Elementor | Append/prepend sections to an existing Elementor post. |
 | `np/elementor-from-markdown` | Elementor | Convert Markdown to a styled Elementor post. |
 
 ## Section schema (Elementor)
 
-Each item in the `sections` array of `np/elementor-build-blog` is one of:
+Each item in the `sections` array of `np/elementor-build-blog` or `np/elementor-build-landing` is one of:
 
 ```jsonc
+// Core blocks
 { "type": "hero",        "title": "…", "subtitle": "…", "cta_text": "…", "cta_url": "…", "bg": "#0F1115" }
 { "type": "heading",     "level": "h2", "text": "…", "align": "left" }
 { "type": "paragraph",   "text": "<p>HTML allowed</p>" }
@@ -123,6 +125,68 @@ Each item in the `sections` array of `np/elementor-build-blog` is one of:
 { "type": "cta",         "title": "…", "text": "…", "button_text": "…", "button_url": "…" }
 { "type": "two_columns", "left": [ /* sections */ ], "right": [ /* sections */ ] }
 { "type": "html",        "code": "<div>…</div>" }
+{ "type": "spacer",      "height": 60 }
+{ "type": "video",       "url": "https://youtu.be/…" }
+
+// Landing‑page conversion blocks
+{ "type": "problem_agitation", "eyebrow": "…", "title": "…", "items": ["pain 1", "pain 2", "pain 3"] }
+{ "type": "benefits_grid",     "title": "…", "subtitle": "…", "columns": 3,
+  "items": [ { "icon": "fas fa-bolt", "title": "…", "text": "…" } ] }
+{ "type": "steps",             "title": "…",
+  "items": [ { "number": 1, "title": "…", "text": "…" } ] }
+{ "type": "testimonials",      "title": "…",
+  "items": [ { "quote": "…", "author": "…", "role": "…", "rating": 5 } ] }
+{ "type": "faq",               "title": "…",
+  "items": [ { "question": "…", "answer": "…" } ] }
+{ "type": "stats",             "items": [ { "number": "500+", "label": "…" } ] }
+{ "type": "pricing",           "plans": [ { "name": "Pro", "price": "$49", "period": "/mo",
+  "features": [ "…" ], "button_text": "…", "button_url": "…", "featured": true } ] }
+{ "type": "author_bio",        "name": "…", "role": "…", "bio": "…", "image_id": 12 }
+{ "type": "guarantee",         "title": "…", "text": "…" }
+{ "type": "feature_list",      "title": "…", "items": [ "feature 1", "feature 2", "…" ] }
+{ "type": "schema",            "json": "{\"@context\":\"https://schema.org\"…}" }
+```
+
+## Landing pages with auto schema and Yoast SEO
+
+`np/elementor-build-landing` accepts everything `np/elementor-build-blog`
+accepts — plus extended Yoast meta (`yoast_canonical`, `yoast_noindex`,
+`yoast_og_title`, `yoast_og_description`, `yoast_og_image_id`,
+`yoast_twitter_title`, `yoast_twitter_description`) and friendly schema
+inputs that are automatically rendered as JSON‑LD `<script>` tags in
+`<head>`:
+
+```jsonc
+{
+  "title": "Landing page title",
+  "slug": "landing",
+  "post_type": "page",
+  "status": "publish",
+  "yoast_focus_keyword": "main keyword",
+  "yoast_meta_description": "… (≤ 160 chars)",
+  "yoast_canonical": "https://example.com/landing",
+  "yoast_og_title": "…",
+  "yoast_og_description": "…",
+  "sticky_whatsapp": "+970599123456",
+  "custom_css": ".elementor-button{transition:transform .2s}.elementor-button:hover{transform:translateY(-2px)}",
+  "breadcrumbs": [
+    { "name": "Home", "url": "https://example.com/" },
+    { "name": "Services", "url": "https://example.com/services/" }
+  ],
+  "business": {
+    "type": "ProfessionalService",
+    "name": "Acme Co.",
+    "telephone": "+970599123456",
+    "priceRange": "$$",
+    "address": { "streetAddress": "…", "addressLocality": "Nablus", "addressCountry": "PS" },
+    "rating": { "ratingValue": "4.9", "reviewCount": "127" },
+    "reviews": [ { "author": "Sara", "rating": 5, "body": "…" } ]
+  },
+  "faqs": [
+    { "question": "…", "answer": "…" }
+  ],
+  "sections": [ /* mix of any section types above */ ]
+}
 ```
 
 ## Repository layout

@@ -10,6 +10,7 @@ namespace NP_MCP_Builder;
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 require_once NP_MCP_BUILDER_DIR . 'includes/class-image-generator.php';
+require_once NP_MCP_BUILDER_DIR . 'includes/class-schema-builder.php';
 require_once NP_MCP_BUILDER_DIR . 'includes/class-section-builder.php';
 require_once NP_MCP_BUILDER_DIR . 'includes/abilities/class-content-abilities.php';
 require_once NP_MCP_BUILDER_DIR . 'includes/abilities/class-image-abilities.php';
@@ -49,6 +50,46 @@ class Plugin {
 
         // 5. Plugin row meta links.
         add_filter( 'plugin_action_links_' . NP_MCP_BUILDER_BASENAME, array( $this, 'plugin_action_links' ) );
+
+        // 6. Front-end injection of per-post schema, custom CSS, and custom JS
+        //    that the np/elementor-build-landing ability stores as post meta.
+        add_action( 'wp_head', array( $this, 'inject_landing_head' ), 20 );
+        add_action( 'wp_footer', array( $this, 'inject_landing_footer' ), 20 );
+    }
+
+    /**
+     * Print JSON-LD schema and custom CSS for landing pages built via
+     * np/elementor-build-landing. Schema is stored as an array of JSON strings
+     * under the post meta key `_np_mcp_schema_jsonld`.
+     */
+    public function inject_landing_head(): void {
+        if ( ! is_singular() ) { return; }
+        $post_id = (int) get_queried_object_id();
+        if ( ! $post_id ) { return; }
+
+        $schemas = get_post_meta( $post_id, '_np_mcp_schema_jsonld', true );
+        if ( is_array( $schemas ) ) {
+            foreach ( $schemas as $json ) {
+                if ( ! is_string( $json ) || $json === '' ) { continue; }
+                echo "<script type=\"application/ld+json\">" . $json . "</script>\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON-LD is generated server-side via wp_json_encode.
+            }
+        }
+        $css = get_post_meta( $post_id, '_np_mcp_custom_css', true );
+        if ( is_string( $css ) && $css !== '' ) {
+            echo "<style id=\"np-mcp-custom-css\">" . wp_strip_all_tags( $css ) . "</style>\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        }
+    }
+
+    public function inject_landing_footer(): void {
+        if ( ! is_singular() ) { return; }
+        $post_id = (int) get_queried_object_id();
+        if ( ! $post_id ) { return; }
+        $js = get_post_meta( $post_id, '_np_mcp_custom_js', true );
+        if ( is_string( $js ) && $js !== '' ) {
+            // Wrap in IIFE; do NOT escape — the user/admin who created the
+            // landing page intentionally provided JS to run.
+            echo "<script id=\"np-mcp-custom-js\">(function(){" . $js . "})();</script>\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        }
     }
 
     public function register_categories(): void {
@@ -90,7 +131,7 @@ class Plugin {
             // Theme
             'np/set-theme-mod', 'np/get-theme-mod',
             // Elementor mega
-            'np/elementor-build-blog', 'np/elementor-append-sections', 'np/elementor-from-markdown',
+            'np/elementor-build-blog', 'np/elementor-build-landing', 'np/elementor-append-sections', 'np/elementor-from-markdown',
         );
         $config['tools'] = array_values( array_unique( array_merge( (array) ( $config['tools'] ?? array() ), $tools ) ) );
         return $config;

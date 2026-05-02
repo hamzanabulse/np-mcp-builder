@@ -4,7 +4,7 @@ Tags: mcp, ai, elementor, gemini, abilities-api, claude, openai
 Requires at least: 6.9
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 1.0.0
+Stable tag: 1.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -54,6 +54,13 @@ Yes — only the three `np/elementor-*` abilities require Elementor. All other a
 `np/generate-image` is Gemini-only at the moment. The other abilities don't need any external API.
 
 == Changelog ==
+
+= 1.1.0 =
+* New ability `np/elementor-build-landing`: one-shot conversion-focused landing pages.
+* New section types: problem_agitation, benefits_grid, steps, testimonials, faq (Elementor accordion), stats, pricing, author_bio, guarantee, feature_list, spacer, video, schema.
+* New `Schema_Builder` helper: auto JSON-LD for FAQPage, LocalBusiness/ProfessionalService, Service, BreadcrumbList, WebPage, AggregateRating, Reviews. Schema is injected into `<head>` from post meta.
+* Extended Yoast SEO support: title, canonical, noindex, OG (title/description/image), Twitter (title/description).
+* Optional sticky WhatsApp button and per-page custom CSS/JS via post meta.
 
 = 1.0.0 =
 * Initial release. 16 abilities across content, media, taxonomy, theme and Elementor.
