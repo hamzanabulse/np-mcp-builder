@@ -16,3 +16,7 @@ node_modules/
 bin/*.local.sh
 bin/.env
 secrets/
+
+# Build artifacts
+*.tgz
+

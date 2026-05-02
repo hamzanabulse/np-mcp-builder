@@ -5,15 +5,15 @@
 # NP MCP Builder
 
 **The complete WordPress + Elementor MCP control plane.**
-49 high-level abilities for AI assistants — content, media, SEO, Elementor, site administration — exposed as MCP tools to Claude, ChatGPT and any MCP-compatible client.
+~140 high-level abilities for AI assistants — content, media, SEO, full Elementor page-building (with Elementor 4.0 atomic elements support), site administration — exposed as MCP tools to Claude, ChatGPT and any MCP-compatible client.
 
 [![WordPress](https://img.shields.io/badge/WordPress-6.9%2B-21759B?logo=wordpress&logoColor=white)](https://wordpress.org/)
 [![PHP](https://img.shields.io/badge/PHP-8.0%2B-777BB4?logo=php&logoColor=white)](https://www.php.net/)
-[![Elementor](https://img.shields.io/badge/Elementor-3.x-D63384?logo=elementor&logoColor=white)](https://elementor.com/)
+[![Elementor](https://img.shields.io/badge/Elementor-3.20%2B-D63384?logo=elementor&logoColor=white)](https://elementor.com/)
 [![Yoast SEO](https://img.shields.io/badge/Yoast%20SEO-supported-A4286A?logo=yoast&logoColor=white)](https://yoast.com/)
 [![Gemini](https://img.shields.io/badge/Google%20Gemini-AI%20images-4285F4?logo=googlegemini&logoColor=white)](https://ai.google.dev/)
-[![License: GPL v2+](https://img.shields.io/badge/License-GPLv2%2B-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.3.0-success)](https://github.com/hamzanabulse/np-mcp-builder/releases)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-1.5.0-success)](https://github.com/hamzanabulse/np-mcp-builder/releases)
 [![Security audit](https://img.shields.io/badge/PHPCS--security-passing-success)](docs/SECURITY-AUDIT.md)
 
 [Installation](#-installation) • [Abilities](#-abilities-49-tools) • [Examples](#-examples) • [Architecture](#-architecture) • [Roadmap](#-roadmap)
@@ -433,3 +433,14 @@ GPL-2.0-or-later — same as WordPress.
 Issues and PRs welcome on [GitHub](https://github.com/hamzanabulse/np-mcp-builder/issues).
 
 If this plugin saved you time, a ⭐️ on the repo is the best kind of thank-you.
+
+
+## ?? Credits
+
+NP MCP Builder bundles the **MCP Tools for Elementor** plugin by [Mian Shahzad Raza (msrbuilds)](https://github.com/msrbuilds/elementor-mcp) under GPL-3.0. That bundled component contributes 97 Elementor-specific MCP tools (atomic-element-aware page building, widgets, layouts, templates, theme builder, popups, dynamic tags, stock images, custom code). Huge thanks to [@msrbuilds](https://github.com/msrbuilds) and [@mhamzashafiq](https://github.com/mhamzashafiq) for their work.
+
+The bundled source lives in endor/elementor-mcp/ with its original copyright notices intact.
+
+## ?? License
+
+NP MCP Builder is released under the **GNU General Public License v3.0 or later** � see [LICENSE](LICENSE).

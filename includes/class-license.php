@@ -40,13 +40,13 @@ class License {
 		'np/site-info',
 		'np/system-info',
 		'np/list-posts',
+		'np/get-post',
 		'np/list-plugins',
 		'np/list-themes',
 		'np/list-menus',
 		'np/list-users',
 		'np/get-yoast-global',
 		'np/get-elementor-kit',
-		'np/elementor-list-templates',
 	);
 
 	const OPTION_KEY    = 'np_mcp_license_key';

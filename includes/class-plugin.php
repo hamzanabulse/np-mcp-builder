@@ -17,12 +17,10 @@ require_once NP_MCP_BUILDER_DIR . 'includes/abilities/class-content-abilities.ph
 require_once NP_MCP_BUILDER_DIR . 'includes/abilities/class-image-abilities.php';
 require_once NP_MCP_BUILDER_DIR . 'includes/abilities/class-taxonomy-abilities.php';
 require_once NP_MCP_BUILDER_DIR . 'includes/abilities/class-theme-abilities.php';
-require_once NP_MCP_BUILDER_DIR . 'includes/abilities/class-elementor-abilities.php';
 require_once NP_MCP_BUILDER_DIR . 'includes/abilities/class-site-abilities.php';
 require_once NP_MCP_BUILDER_DIR . 'includes/abilities/class-menu-abilities.php';
 require_once NP_MCP_BUILDER_DIR . 'includes/abilities/class-user-abilities.php';
 require_once NP_MCP_BUILDER_DIR . 'includes/abilities/class-seo-abilities.php';
-require_once NP_MCP_BUILDER_DIR . 'includes/abilities/class-elementor-data-abilities.php';
 require_once NP_MCP_BUILDER_DIR . 'includes/admin/class-settings.php';
 
 class Plugin {
@@ -52,11 +50,6 @@ class Plugin {
         // Theme customizer
         'np/set-theme-mod' => array( 'Theme_Abilities', 'Theme', 'Set a Customizer value.' ),
         'np/get-theme-mod' => array( 'Theme_Abilities', 'Theme', 'Read a Customizer value.' ),
-        // Elementor
-        'np/elementor-build-blog'       => array( 'Elementor_Abilities', 'Elementor', 'Build a styled Elementor post in one call.' ),
-        'np/elementor-build-landing'    => array( 'Elementor_Abilities', 'Elementor', 'Build a conversion-focused landing page with auto JSON-LD schema and Yoast SEO.' ),
-        'np/elementor-append-sections'  => array( 'Elementor_Abilities', 'Elementor', 'Append/prepend sections to an existing Elementor post.' ),
-        'np/elementor-from-markdown'    => array( 'Elementor_Abilities', 'Elementor', 'Convert Markdown to a styled Elementor post.' ),
         // Site control
         'np/list-plugins'        => array( 'Site_Abilities', 'Site', 'List installed plugins.' ),
         'np/activate-plugin'     => array( 'Site_Abilities', 'Site', 'Activate a plugin.' ),
@@ -87,13 +80,6 @@ class Plugin {
         'np/update-elementor-kit'=> array( 'Seo_Abilities', 'Elementor', 'Update Elementor kit globals.' ),
         'np/get-seo-head'        => array( 'Seo_Abilities', 'SEO',       'Get Yoast-rendered SEO head (HTML + JSON + schema graph) for a post or URL.' ),
         'np/audit-seo'           => array( 'Seo_Abilities', 'SEO',       'Audit posts/pages for missing focus keyword, meta description, OG image, schema, etc.' ),
-        // Elementor data + templates
-        'np/elementor-get-data'        => array( 'Elementor_Data_Abilities', 'Elementor', 'Read raw Elementor data of a post.' ),
-        'np/elementor-set-data'        => array( 'Elementor_Data_Abilities', 'Elementor', 'Write raw Elementor data to a post.' ),
-        'np/elementor-list-templates'  => array( 'Elementor_Data_Abilities', 'Elementor', 'List Elementor library templates.' ),
-        'np/elementor-save-as-template'=> array( 'Elementor_Data_Abilities', 'Elementor', 'Save a post as a reusable Elementor template.' ),
-        'np/elementor-apply-template'  => array( 'Elementor_Data_Abilities', 'Elementor', 'Apply an Elementor template to a post.' ),
-        'np/elementor-regenerate-css'  => array( 'Elementor_Data_Abilities', 'Elementor', 'Regenerate Elementor CSS files for a post or globally.' ),
     );
 
     public static function instance(): Plugin {
