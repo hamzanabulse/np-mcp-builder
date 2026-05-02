@@ -343,6 +343,9 @@ class Site_Abilities {
         }
         if ( ! isset( $input['transients'] ) || $input['transients'] ) {
             global $wpdb;
+            // Bulk transient purge — there is no caching layer for the options-table itself,
+            // and looping per-row would issue thousands of queries on large sites.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
             $deleted = (int) $wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '\\_transient\\_%' OR option_name LIKE '\\_site\\_transient\\_%'" );
             $report['transients_deleted'] = $deleted;
         }

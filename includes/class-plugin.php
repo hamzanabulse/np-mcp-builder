@@ -163,7 +163,9 @@ class Plugin {
         if ( empty( $opts['maintenance_enabled'] ) ) { return; }
         if ( is_user_logged_in() && current_user_can( 'manage_options' ) ) { return; }
         if ( defined( 'WP_CLI' ) && WP_CLI ) { return; }
-        $uri = (string) ( $_SERVER['REQUEST_URI'] ?? '' );
+        $uri = isset( $_SERVER['REQUEST_URI'] )
+            ? sanitize_text_field( wp_unslash( (string) $_SERVER['REQUEST_URI'] ) )
+            : '';
         if ( strpos( $uri, '/wp-login' ) !== false ) { return; }
         if ( strpos( $uri, '/wp-admin' ) !== false ) { return; }
         nocache_headers();

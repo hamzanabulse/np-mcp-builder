@@ -145,7 +145,8 @@ class Settings {
 
     public static function render(): void {
         if ( ! current_user_can( 'manage_options' ) ) { return; }
-        $tab = isset( $_GET['tab'] ) ? sanitize_key( (string) $_GET['tab'] ) : 'overview';
+        // Read-only routing param; not a form submission, so no nonce required.
+        $tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( (string) $_GET['tab'] ) ) : 'overview'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only tab routing.
 
         echo '<div class="wrap np-mcp-wrap">';
         self::render_hero();
@@ -305,7 +306,8 @@ class Settings {
     /* TOOLS                                                            */
     /* ---------------------------------------------------------------- */
     private static function tab_tools(): void {
-        $cleared = isset( $_GET['cleared'] ) ? sanitize_text_field( (string) $_GET['cleared'] ) : '';
+        // Read-only display flag set by our admin-post handler after a verified nonce; safe to read without nonce here.
+        $cleared = isset( $_GET['cleared'] ) ? sanitize_key( wp_unslash( (string) $_GET['cleared'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- display-only flag.
         if ( $cleared === '1' ) {
             echo '<div class="np-mcp-banner ok"><span class="dashicons dashicons-yes-alt"></span> ' . esc_html__( 'Caches cleared.', 'np-mcp-builder' ) . '</div>';
         }

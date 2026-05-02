@@ -1,0 +1,14 @@
+{
+  "name": "np/audit",
+  "require-dev": {
+    "squizlabs/php_codesniffer": "^3.10",
+    "wp-coding-standards/wpcs": "^3",
+    "phpcompatibility/phpcompatibility-wp": "^2",
+    "dealerdirect/phpcodesniffer-composer-installer": "^1"
+  },
+  "config": {
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true
+    }
+  }
+}

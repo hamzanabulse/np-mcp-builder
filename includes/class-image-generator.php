@@ -97,13 +97,14 @@ class Image_Generator {
         require_once ABSPATH . 'wp-admin/includes/image.php';
 
         $tmp_in = wp_tempnam( $slug . '.png' );
-        if ( file_put_contents( $tmp_in, $bin ) === false ) {
+        // wp_tempnam returns a controlled path inside the uploads dir; using file_put_contents for binary efficiency.
+        if ( false === file_put_contents( $tmp_in, $bin ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- binary write to wp_tempnam-controlled path.
             return new \WP_Error( 'np_write', 'Could not write temp file.', array( 'status' => 500 ) );
         }
 
         $editor = wp_get_image_editor( $tmp_in );
         if ( is_wp_error( $editor ) ) {
-            @unlink( $tmp_in );
+            wp_delete_file( $tmp_in );
             return $editor;
         }
         $size = $editor->get_size();
@@ -113,9 +114,9 @@ class Image_Generator {
         $editor->set_quality( $quality );
         $tmp_out = wp_tempnam( $slug . '.webp' );
         $saved   = $editor->save( $tmp_out, 'image/webp' );
-        @unlink( $tmp_in );
+        wp_delete_file( $tmp_in );
         if ( is_wp_error( $saved ) ) {
-            @unlink( $tmp_out );
+            wp_delete_file( $tmp_out );
             return $saved;
         }
 
@@ -129,7 +130,7 @@ class Image_Generator {
             'post_name'    => $slug,
         ) );
         if ( is_wp_error( $aid ) ) {
-            @unlink( $saved['path'] );
+            wp_delete_file( $saved['path'] );
             return $aid;
         }
 
