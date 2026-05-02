@@ -1,0 +1,9 @@
+*.zip
+*.tar.gz
+*.bak
+*.bak.*
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+node_modules/
