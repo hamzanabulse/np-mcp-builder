@@ -57,35 +57,75 @@ It is built on top of the official [WordPress Abilities API](https://github.com/
 
 ## 🔧 Installation
 
-### From source
+### Option 1 — Clone from GitHub (recommended)
+
+On the server (one-time install):
 
 ```bash
-cd wp-content/plugins
+cd /var/www/your-wordpress/wp-content/plugins
 git clone https://github.com/hamzanabulse/np-mcp-builder.git
-wp plugin activate np-mcp-builder
+wp --allow-root --path=/var/www/your-wordpress plugin activate np-mcp-builder
 ```
 
-### From ZIP
+To pull future updates:
 
-1. Download the latest ZIP from [Releases](https://github.com/hamzanabulse/np-mcp-builder/releases).
-2. Plugins → Add New → Upload → activate.
-3. Open **NP MCP Builder** in the admin sidebar → **Settings** tab → paste your Gemini key.
-4. Make sure `mcp-adapter` is also active.
+```bash
+cd /var/www/your-wordpress/wp-content/plugins/np-mcp-builder
+git pull
+wp --allow-root --path=/var/www/your-wordpress plugin deactivate np-mcp-builder
+wp --allow-root --path=/var/www/your-wordpress plugin activate np-mcp-builder
+```
+
+The deactivate/activate cycle forces WordPress to reload the new code (otherwise opcache may serve the old class definitions).
+
+### Option 2 — ZIP upload
+
+1. Download the latest ZIP from [Releases](https://github.com/hamzanabulse/np-mcp-builder/releases) (or **Code → Download ZIP**).
+2. WordPress admin → **Plugins → Add New → Upload Plugin** → select the ZIP → **Install Now** → **Activate**.
+
+### Post-install setup
+
+1. Open **NP MCP Builder** in the admin sidebar.
+2. **Settings tab** → paste your Google Gemini API key (only required for `np/generate-image`).
+3. Make sure [`mcp-adapter`](https://github.com/WordPress/mcp-adapter) is also installed and active (it provides the actual `/wp-json/mcp/v1/*` HTTP endpoint).
+4. **Abilities tab** → toggle off any tools you do not want exposed.
 
 ### Connect Claude Desktop
+
+Generate an Application Password in **Users → Profile → Application Passwords**, then base64-encode `username:app-password`:
+
+```bash
+echo -n 'your-username:xxxx xxxx xxxx xxxx xxxx xxxx' | base64
+```
+
+Edit `claude_desktop_config.json`:
 
 ```jsonc
 {
   "mcpServers": {
     "wordpress": {
       "command": "npx",
-      "args": ["-y", "mcp-remote", "https://YOUR-SITE.com/wp-json/mcp/v1/streamable", "--header", "Authorization: Bearer YOUR_APP_PASSWORD_BASE64"]
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://YOUR-SITE.com/wp-json/mcp/mcp-adapter-default-server",
+        "--header",
+        "Authorization: Basic YOUR_BASE64_TOKEN"
+      ]
     }
   }
 }
 ```
 
-Generate an Application Password in **Users → Profile → Application Passwords** and base64-encode `username:app-password`.
+Restart Claude Desktop. You should see all 49 `np-*` tools available.
+
+### Verify the install
+
+```bash
+wp --allow-root --user=YOUR_ADMIN --path=/var/www/your-wordpress eval-file bin/test-abilities.php
+```
+
+Expected: `Registered: 49 / 49 — Missing: 0` followed by 11 `[OK]` lines for the read-only tools.
 
 ---
 
