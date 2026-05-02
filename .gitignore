@@ -7,3 +7,12 @@ Thumbs.db
 .idea/
 .vscode/
 node_modules/
+
+# Secrets — NEVER commit
+.env
+.env.*
+!.env.example
+*.local
+bin/*.local.sh
+bin/.env
+secrets/
