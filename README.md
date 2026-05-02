@@ -1,1 +1,156 @@
-# np-mcp-builder
+# NP MCP Builder
+
+A WordPress plugin that turns your site into a Model Context Protocol (MCP) server, exposing high‑level content, taxonomy, theme and Elementor operations as callable abilities. Built on the WordPress Abilities API (6.9+) and the [`mcp-adapter`](https://github.com/Automattic/mcp-adapter) plugin.
+
+[![WordPress](https://img.shields.io/badge/WordPress-6.9%2B-21759b)](https://wordpress.org/) [![PHP](https://img.shields.io/badge/PHP-8.0%2B-777bb4)](https://www.php.net/) [![License](https://img.shields.io/badge/License-GPLv2%2B-green.svg)](LICENSE) [![Elementor](https://img.shields.io/badge/Elementor-compatible-92003B)](https://elementor.com/)
+
+> **Keywords:** WordPress MCP server, Model Context Protocol, WordPress Abilities API, Claude Desktop WordPress, AI content generation, Gemini image generation, Elementor automation, headless WordPress AI, MCP tools WordPress, Yoast SEO automation.
+
+---
+
+## Why this plugin
+
+Most MCP integrations for WordPress expose dozens of low‑level REST endpoints — one tool per CRUD operation — which forces the client to chain many calls and leak implementation details. NP MCP Builder takes the opposite approach: **a small, opinionated set of high‑level abilities** that match real editorial workflows.
+
+A single call to `np/elementor-build-blog` produces a complete, styled Elementor post with featured image, categories, tags, focus keyword, meta description and a full layout. A single call to `np/elementor-from-markdown` converts a Markdown article into a styled Elementor page. A single call to `np/generate-image` produces a generated, resized, WebP‑optimised image with full Media Library SEO metadata.
+
+## Features
+
+- **16 abilities** registered through the official WordPress Abilities API.
+- **One‑shot Elementor blog builder** with a friendly section schema (hero, heading, paragraph, image, generated image, list, quote, divider, CTA, two‑column row, raw HTML).
+- **Markdown → Elementor** converter that preserves headings, lists, blockquotes, horizontal rules and inline formatting.
+- **Image pipeline** using Google Gemini (`gemini-2.5-flash-image`), with automatic resize, WebP conversion, alt/title/caption/description and attachment‑to‑post wiring.
+- **Native taxonomy management** — list, create, update, delete and assign terms (categories, tags, custom taxonomies) with auto‑creation by name.
+- **Yoast SEO integration** — sets focus keyword and meta description directly on `wp_insert_post` calls.
+- **Settings page** for the Gemini API key, default aspect ratio, default max width and default WebP quality.
+- **Capability‑checked permissions** on every ability.
+- **Namespaced under** `NP_MCP_Builder\` for clean integration with other plugins.
+
+## Requirements
+
+| Component | Version |
+|----------|---------|
+| WordPress | 6.9 or later (Abilities API) |
+| PHP | 8.0 or later |
+| [`mcp-adapter`](https://github.com/Automattic/mcp-adapter) plugin | latest |
+| Elementor | optional — required only by the `np/elementor-*` abilities |
+| Google AI Studio API key | optional — required only by `np/generate-image` |
+
+## Installation
+
+```bash
+cd wp-content/plugins
+git clone https://github.com/hamzanabulse/np-mcp-builder.git
+```
+
+Or download the ZIP and upload it through **Plugins → Add New → Upload Plugin**.
+
+Activate the plugin, then open **Settings → NP MCP Builder** and paste your Gemini API key (only needed for `np/generate-image`).
+
+## Quick start
+
+Once the `mcp-adapter` plugin is active, the MCP endpoint is exposed at:
+
+```
+/wp-json/mcp/v1/
+```
+
+Authenticate using a WordPress Application Password. Example client config (Claude Desktop, Cursor, etc.):
+
+```json
+{
+  "mcpServers": {
+    "wordpress": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://example.com/wp-json/mcp/v1/"],
+      "env": {
+        "AUTH_HEADER": "Basic <base64(user:application-password)>"
+      }
+    }
+  }
+}
+```
+
+## Abilities
+
+| Ability | Category | Description |
+|---------|----------|-------------|
+| `np/site-info` | Site | Basic site info (name, URL, theme, language). |
+| `np/list-posts` | Content | List posts/pages with filters. |
+| `np/get-post` | Content | Read a single post with Yoast meta. |
+| `np/create-post` | Content | Create post or page with categories, tags, Yoast fields. |
+| `np/update-post` | Content | Update post fields and Yoast meta. |
+| `np/generate-image` | Media | Gemini → resize → WebP → Media Library, with full SEO metadata. |
+| `np/list-terms` | Taxonomy | List taxonomy terms. |
+| `np/create-term` | Taxonomy | Create category, tag or custom taxonomy term. |
+| `np/update-term` | Taxonomy | Rename / re‑slug / re‑parent a term. |
+| `np/delete-term` | Taxonomy | Delete a term. |
+| `np/set-post-terms` | Taxonomy | Assign terms by id, name or slug (auto‑create supported). |
+| `np/set-theme-mod` | Theme | Set a Customizer value. |
+| `np/get-theme-mod` | Theme | Read a Customizer value. |
+| `np/elementor-build-blog` | Elementor | Build a full styled Elementor post in one call. |
+| `np/elementor-append-sections` | Elementor | Append/prepend sections to an existing Elementor post. |
+| `np/elementor-from-markdown` | Elementor | Convert Markdown to a styled Elementor post. |
+
+## Section schema (Elementor)
+
+Each item in the `sections` array of `np/elementor-build-blog` is one of:
+
+```jsonc
+{ "type": "hero",        "title": "…", "subtitle": "…", "cta_text": "…", "cta_url": "…", "bg": "#0F1115" }
+{ "type": "heading",     "level": "h2", "text": "…", "align": "left" }
+{ "type": "paragraph",   "text": "<p>HTML allowed</p>" }
+{ "type": "image",       "attachment_id": 123, "caption": "…" }
+{ "type": "image_gen",   "prompt": "…", "alt": "…", "aspect_ratio": "16:9" }
+{ "type": "list",        "items": ["one", "two", "three"] }
+{ "type": "quote",       "text": "…", "author": "…" }
+{ "type": "divider" }
+{ "type": "cta",         "title": "…", "text": "…", "button_text": "…", "button_url": "…" }
+{ "type": "two_columns", "left": [ /* sections */ ], "right": [ /* sections */ ] }
+{ "type": "html",        "code": "<div>…</div>" }
+```
+
+## Repository layout
+
+```
+np-mcp-builder/
+├── np-mcp-builder.php              Plugin bootstrap and headers
+├── readme.txt                      WordPress.org‑style readme
+├── uninstall.php                   Cleanup on plugin deletion
+├── LICENSE                         GPL‑2.0‑or‑later
+└── includes/
+    ├── class-plugin.php            Singleton: registers categories, abilities, MCP tools
+    ├── class-image-generator.php   Gemini API client + WebP pipeline
+    ├── class-section-builder.php   Friendly schema → Elementor JSON nodes
+    ├── abilities/
+    │   ├── class-content-abilities.php
+    │   ├── class-image-abilities.php
+    │   ├── class-taxonomy-abilities.php
+    │   ├── class-theme-abilities.php
+    │   └── class-elementor-abilities.php
+    └── admin/
+        └── class-settings.php
+```
+
+## Security
+
+- Every ability declares an explicit `permission_callback` mapped to a WordPress capability (`manage_options`, `edit_posts`, `publish_posts`, `manage_categories`, `edit_theme_options`, `upload_files`).
+- The Gemini API key is stored in the `wp_options` table and rendered as a `password`‑typed field in the admin UI.
+- All input is validated against JSON Schema and sanitised with the appropriate WordPress helpers (`sanitize_text_field`, `wp_kses_post`, `sanitize_title`, etc.).
+- No data leaves the site unless an ability explicitly requires it (only `np/generate-image` calls Gemini).
+
+## Contributing
+
+Issues and pull requests are welcome. Please run `php -l` on any modified PHP file before submitting and keep new abilities namespaced under `np/`.
+
+## Versioning
+
+Follows [Semantic Versioning](https://semver.org/). The public surface is the set of registered ability names together with their input and output schemas.
+
+## License
+
+[GPL‑2.0‑or‑later](LICENSE).
+
+## Author
+
+Hamza Ali Nabulsi — [hamzanabulsi.com](https://hamzanabulsi.com)
