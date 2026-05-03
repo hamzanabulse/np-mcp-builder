@@ -170,14 +170,14 @@ class Elementor_MCP_Atomic_Layout_Abilities {
 			} else {
 				array_splice( $page_data, max( 0, $position ), 0, array( $element ) );
 			}
-			$inserted = $page_data;
+			$inserted = true;
 		}
 
 		if ( is_wp_error( $inserted ) ) {
 			return $inserted;
 		}
 
-		$save = $this->data->save_page_data( $post_id, $inserted );
+		$save = $this->data->save_page_data( $post_id, $page_data );
 		if ( is_wp_error( $save ) ) {
 			return $save;
 		}
@@ -274,14 +274,14 @@ class Elementor_MCP_Atomic_Layout_Abilities {
 			} else {
 				array_splice( $page_data, max( 0, $position ), 0, array( $element ) );
 			}
-			$inserted = $page_data;
+			$inserted = true;
 		}
 
 		if ( is_wp_error( $inserted ) ) {
 			return $inserted;
 		}
 
-		$save = $this->data->save_page_data( $post_id, $inserted );
+		$save = $this->data->save_page_data( $post_id, $page_data );
 		if ( is_wp_error( $save ) ) {
 			return $save;
 		}
@@ -308,7 +308,7 @@ class Elementor_MCP_Atomic_Layout_Abilities {
 				'category'            => 'elementor-mcp',
 				'execute_callback'    => function () {
 					$core_version = defined( 'ELEMENTOR_VERSION' ) ? ELEMENTOR_VERSION : 'unknown';
-					$pro_version  = defined( 'ELEMENTOR_PRO_VERSION' ) ? ELEMENTOR_PRO_VERSION : null;
+					$pro_version  = defined( 'ELEMENTOR_PRO_VERSION' ) ? ELEMENTOR_PRO_VERSION : '';
 
 					return array(
 						'elementor_version'     => $core_version,

@@ -97,10 +97,16 @@ class Content_Abilities {
                     'excerpt'  => $p->post_excerpt,
                     'slug'     => $p->post_name,
                     'link'     => get_permalink( $p ),
+                    'featured_image_id' => (int) get_post_thumbnail_id( $p ),
+                    'categories' => wp_get_post_terms( $p->ID, 'category', array( 'fields' => 'names' ) ),
+                    'tags'       => wp_get_post_terms( $p->ID, 'post_tag', array( 'fields' => 'names' ) ),
                     'meta'     => array(
                         'yoast_title' => get_post_meta( $p->ID, '_yoast_wpseo_title', true ),
                         'yoast_desc'  => get_post_meta( $p->ID, '_yoast_wpseo_metadesc', true ),
                         'yoast_focus' => get_post_meta( $p->ID, '_yoast_wpseo_focuskw', true ),
+                        'yoast_canonical' => get_post_meta( $p->ID, '_yoast_wpseo_canonical', true ),
+                        'yoast_schema_page_type' => get_post_meta( $p->ID, '_yoast_wpseo_schema_page_type', true ),
+                        'schema_jsonld' => get_post_meta( $p->ID, '_np_mcp_schema_jsonld', true ),
                     ),
                 );
             },
@@ -111,7 +117,7 @@ class Content_Abilities {
         // 4) Create post.
         wp_register_ability( 'np/create-post', array(
             'label'       => 'Create Post',
-            'description' => 'Create a new blog post. Returns the new ID, permalink and edit link.',
+            'description' => 'Create a new blog post/page with SEO-ready fields: slug, categories, tags, featured image, Yoast meta, schema JSON-LD, custom CSS/JS. Returns the new ID, permalink and edit link.',
             'category'    => 'np-content',
             'input_schema' => array(
                 'type' => 'object',
@@ -120,29 +126,45 @@ class Content_Abilities {
                     'title'      => array( 'type' => 'string' ),
                     'content'    => array( 'type' => 'string' ),
                     'excerpt'    => array( 'type' => 'string' ),
+                    'slug'       => array( 'type' => 'string' ),
                     'status'     => array( 'type' => 'string', 'enum' => array( 'draft', 'publish', 'pending', 'private' ), 'default' => 'draft' ),
                     'post_type'  => array( 'type' => 'string', 'default' => 'post' ),
-                    'categories' => array( 'type' => 'array', 'items' => array( 'type' => 'integer' ) ),
-                    'tags'       => array( 'type' => 'array', 'items' => array( 'type' => 'string' ) ),
+                    'categories' => array( 'type' => 'array', 'items' => array( 'type' => array( 'string', 'integer' ) ), 'description' => 'Category IDs, names, or slugs.' ),
+                    'tags'       => array( 'type' => 'array', 'items' => array( 'type' => array( 'string', 'integer' ) ), 'description' => 'Tag IDs, names, or slugs.' ),
+                    'featured_image_id' => array( 'type' => 'integer' ),
                     'yoast_title' => array( 'type' => 'string' ),
                     'yoast_desc'  => array( 'type' => 'string' ),
                     'yoast_focus' => array( 'type' => 'string' ),
+                    'yoast_canonical' => array( 'type' => 'string' ),
+                    'yoast_og_title'  => array( 'type' => 'string' ),
+                    'yoast_og_desc'   => array( 'type' => 'string' ),
+                    'yoast_og_image'  => array( 'type' => 'string' ),
+                    'yoast_twitter_title' => array( 'type' => 'string' ),
+                    'yoast_twitter_desc'  => array( 'type' => 'string' ),
+                    'yoast_twitter_image' => array( 'type' => 'string' ),
+                    'yoast_schema_page_type' => array( 'type' => 'string' ),
+                    'schema_jsonld' => array( 'type' => 'array', 'description' => 'Array of JSON-LD strings or objects injected in wp_head.' ),
+                    'custom_css'    => array( 'type' => 'string' ),
+                    'custom_js'     => array( 'type' => 'string' ),
                 ),
             ),
             'execute_callback' => static function ( array $input ) {
-                $id = wp_insert_post( array(
+                $post_data = array(
                     'post_title'    => $input['title'],
                     'post_content'  => $input['content'] ?? '',
                     'post_excerpt'  => $input['excerpt'] ?? '',
                     'post_status'   => $input['status'] ?? 'draft',
                     'post_type'     => $input['post_type'] ?? 'post',
-                    'post_category' => $input['categories'] ?? array(),
-                ), true );
+                );
+                if ( ! empty( $input['slug'] ) ) {
+                    $post_data['post_name'] = sanitize_title( (string) $input['slug'] );
+                }
+                $id = wp_insert_post( $post_data, true );
                 if ( is_wp_error( $id ) ) { return array( 'error' => $id->get_error_message() ); }
-                if ( ! empty( $input['tags'] ) ) { wp_set_post_tags( $id, $input['tags'] ); }
-                if ( ! empty( $input['yoast_title'] ) ) { update_post_meta( $id, '_yoast_wpseo_title', $input['yoast_title'] ); }
-                if ( ! empty( $input['yoast_desc'] ) )  { update_post_meta( $id, '_yoast_wpseo_metadesc', $input['yoast_desc'] ); }
-                if ( ! empty( $input['yoast_focus'] ) ) { update_post_meta( $id, '_yoast_wpseo_focuskw', $input['yoast_focus'] ); }
+                self::apply_post_terms( $id, $input );
+                self::apply_featured_image( $id, $input );
+                self::apply_seo_meta( $id, $input );
+                self::apply_np_assets( $id, $input );
                 return array( 'id' => $id, 'link' => get_permalink( $id ), 'edit_link' => get_edit_post_link( $id, 'raw' ) );
             },
             'permission_callback' => static function () { return current_user_can( 'publish_posts' ); },
@@ -152,7 +174,7 @@ class Content_Abilities {
         // 5) Update post.
         wp_register_ability( 'np/update-post', array(
             'label'       => 'Update Post',
-            'description' => 'Update fields and Yoast meta of an existing post or page.',
+            'description' => 'Update fields, taxonomy, featured image, Yoast meta, schema JSON-LD and custom CSS/JS of an existing post or page.',
             'category'    => 'np-content',
             'input_schema' => array(
                 'type' => 'object',
@@ -162,26 +184,120 @@ class Content_Abilities {
                     'title'   => array( 'type' => 'string' ),
                     'content' => array( 'type' => 'string' ),
                     'excerpt' => array( 'type' => 'string' ),
+                    'slug'    => array( 'type' => 'string' ),
                     'status'  => array( 'type' => 'string' ),
+                    'categories' => array( 'type' => 'array', 'items' => array( 'type' => array( 'string', 'integer' ) ), 'description' => 'Category IDs, names, or slugs.' ),
+                    'tags'       => array( 'type' => 'array', 'items' => array( 'type' => array( 'string', 'integer' ) ), 'description' => 'Tag IDs, names, or slugs.' ),
+                    'append_terms' => array( 'type' => 'boolean', 'default' => false ),
+                    'featured_image_id' => array( 'type' => 'integer' ),
                     'yoast_title' => array( 'type' => 'string' ),
                     'yoast_desc'  => array( 'type' => 'string' ),
                     'yoast_focus' => array( 'type' => 'string' ),
+                    'yoast_canonical' => array( 'type' => 'string' ),
+                    'yoast_og_title'  => array( 'type' => 'string' ),
+                    'yoast_og_desc'   => array( 'type' => 'string' ),
+                    'yoast_og_image'  => array( 'type' => 'string' ),
+                    'yoast_twitter_title' => array( 'type' => 'string' ),
+                    'yoast_twitter_desc'  => array( 'type' => 'string' ),
+                    'yoast_twitter_image' => array( 'type' => 'string' ),
+                    'yoast_schema_page_type' => array( 'type' => 'string' ),
+                    'schema_jsonld' => array( 'type' => 'array', 'description' => 'Array of JSON-LD strings or objects injected in wp_head.' ),
+                    'custom_css'    => array( 'type' => 'string' ),
+                    'custom_js'     => array( 'type' => 'string' ),
                 ),
             ),
             'execute_callback' => static function ( array $input ) {
                 $data = array( 'ID' => (int) $input['id'] );
-                foreach ( array( 'title' => 'post_title', 'content' => 'post_content', 'excerpt' => 'post_excerpt', 'status' => 'post_status' ) as $k => $col ) {
-                    if ( array_key_exists( $k, $input ) ) { $data[ $col ] = $input[ $k ]; }
+                foreach ( array( 'title' => 'post_title', 'content' => 'post_content', 'excerpt' => 'post_excerpt', 'status' => 'post_status', 'slug' => 'post_name' ) as $k => $col ) {
+                    if ( array_key_exists( $k, $input ) ) { $data[ $col ] = ( $k === 'slug' ) ? sanitize_title( (string) $input[ $k ] ) : $input[ $k ]; }
                 }
                 $r = wp_update_post( $data, true );
                 if ( is_wp_error( $r ) ) { return array( 'error' => $r->get_error_message() ); }
-                if ( array_key_exists( 'yoast_title', $input ) ) { update_post_meta( $r, '_yoast_wpseo_title', $input['yoast_title'] ); }
-                if ( array_key_exists( 'yoast_desc', $input ) )  { update_post_meta( $r, '_yoast_wpseo_metadesc', $input['yoast_desc'] ); }
-                if ( array_key_exists( 'yoast_focus', $input ) ) { update_post_meta( $r, '_yoast_wpseo_focuskw', $input['yoast_focus'] ); }
+                self::apply_post_terms( $r, $input, ! empty( $input['append_terms'] ) );
+                self::apply_featured_image( $r, $input );
+                self::apply_seo_meta( $r, $input );
+                self::apply_np_assets( $r, $input );
                 return array( 'id' => $r, 'link' => get_permalink( $r ) );
             },
             'permission_callback' => static function () { return current_user_can( 'edit_posts' ); },
             'meta' => array( 'mcp' => array( 'public' => true ) ),
         ) );
+    }
+
+    private static function apply_post_terms( int $post_id, array $input, bool $append = false ): void {
+        if ( array_key_exists( 'categories', $input ) ) {
+            wp_set_post_terms( $post_id, self::resolve_terms( (array) $input['categories'], 'category' ), 'category', $append );
+        }
+        if ( array_key_exists( 'tags', $input ) ) {
+            wp_set_post_terms( $post_id, self::resolve_terms( (array) $input['tags'], 'post_tag' ), 'post_tag', $append );
+        }
+    }
+
+    private static function resolve_terms( array $terms, string $taxonomy ): array {
+        $resolved = array();
+        $hierarchical = is_taxonomy_hierarchical( $taxonomy );
+        foreach ( $terms as $term ) {
+            if ( is_int( $term ) || ( is_string( $term ) && ctype_digit( $term ) ) ) {
+                $resolved[] = (int) $term;
+                continue;
+            }
+            $name = trim( wp_strip_all_tags( (string) $term ) );
+            if ( $name === '' ) { continue; }
+            $existing = get_term_by( 'name', $name, $taxonomy );
+            if ( ! $existing ) { $existing = get_term_by( 'slug', sanitize_title( $name ), $taxonomy ); }
+            if ( $existing ) {
+                $resolved[] = (int) $existing->term_id;
+                continue;
+            }
+            if ( $hierarchical ) {
+                $created = wp_insert_term( $name, $taxonomy );
+                if ( ! is_wp_error( $created ) ) { $resolved[] = (int) $created['term_id']; }
+            } else {
+                $resolved[] = $name;
+            }
+        }
+        return $resolved;
+    }
+
+    private static function apply_featured_image( int $post_id, array $input ): void {
+        if ( array_key_exists( 'featured_image_id', $input ) ) {
+            $attachment_id = (int) $input['featured_image_id'];
+            if ( $attachment_id > 0 ) { set_post_thumbnail( $post_id, $attachment_id ); }
+            else { delete_post_thumbnail( $post_id ); }
+        }
+    }
+
+    private static function apply_seo_meta( int $post_id, array $input ): void {
+        $map = array(
+            'yoast_title'            => '_yoast_wpseo_title',
+            'yoast_desc'             => '_yoast_wpseo_metadesc',
+            'yoast_focus'            => '_yoast_wpseo_focuskw',
+            'yoast_canonical'        => '_yoast_wpseo_canonical',
+            'yoast_og_title'         => '_yoast_wpseo_opengraph-title',
+            'yoast_og_desc'          => '_yoast_wpseo_opengraph-description',
+            'yoast_og_image'         => '_yoast_wpseo_opengraph-image',
+            'yoast_twitter_title'    => '_yoast_wpseo_twitter-title',
+            'yoast_twitter_desc'     => '_yoast_wpseo_twitter-description',
+            'yoast_twitter_image'    => '_yoast_wpseo_twitter-image',
+            'yoast_schema_page_type' => '_yoast_wpseo_schema_page_type',
+        );
+        foreach ( $map as $input_key => $meta_key ) {
+            if ( array_key_exists( $input_key, $input ) ) {
+                update_post_meta( $post_id, $meta_key, sanitize_text_field( (string) $input[ $input_key ] ) );
+            }
+        }
+    }
+
+    private static function apply_np_assets( int $post_id, array $input ): void {
+        if ( array_key_exists( 'schema_jsonld', $input ) ) {
+            $schemas = array();
+            foreach ( (array) $input['schema_jsonld'] as $schema ) {
+                if ( is_array( $schema ) || is_object( $schema ) ) { $schema = wp_json_encode( $schema ); }
+                if ( is_string( $schema ) && trim( $schema ) !== '' ) { $schemas[] = trim( $schema ); }
+            }
+            update_post_meta( $post_id, '_np_mcp_schema_jsonld', $schemas );
+        }
+        if ( array_key_exists( 'custom_css', $input ) ) { update_post_meta( $post_id, '_np_mcp_custom_css', (string) $input['custom_css'] ); }
+        if ( array_key_exists( 'custom_js', $input ) )  { update_post_meta( $post_id, '_np_mcp_custom_js', (string) $input['custom_js'] ); }
     }
 }

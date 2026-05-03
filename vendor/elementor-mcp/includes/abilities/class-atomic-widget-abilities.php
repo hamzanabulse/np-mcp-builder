@@ -153,7 +153,7 @@ class Elementor_MCP_Atomic_Widget_Abilities {
 			return $inserted;
 		}
 
-		$save = $this->data->save_page_data( $post_id, $inserted );
+		$save = $this->data->save_page_data( $post_id, $page_data );
 		if ( is_wp_error( $save ) ) {
 			return $save;
 		}
@@ -287,7 +287,7 @@ class Elementor_MCP_Atomic_Widget_Abilities {
 						return $inserted;
 					}
 
-					$save = $this->data->save_page_data( $post_id, $inserted );
+					$save = $this->data->save_page_data( $post_id, $page_data );
 					if ( is_wp_error( $save ) ) {
 						return $save;
 					}

@@ -27,12 +27,13 @@ class Site_Abilities {
 
         wp_register_ability( 'np/activate-plugin', array(
             'label' => 'Activate plugin', 'category' => 'np-site',
-            'description' => 'Activate an installed plugin by its plugin file (e.g. "akismet/akismet.php").',
+            'description' => 'Activate an installed plugin by its plugin file (e.g. "akismet/akismet.php"). Safety: requires confirm=true.',
             'input_schema' => array(
-                'type' => 'object', 'required' => array( 'plugin' ),
+                'type' => 'object', 'required' => array( 'plugin', 'confirm' ),
                 'properties' => array(
                     'plugin'         => array( 'type' => 'string' ),
                     'network_wide'   => array( 'type' => 'boolean', 'default' => false ),
+                    'confirm'        => array( 'type' => 'boolean', 'description' => 'Must be true to activate a plugin.' ),
                 ),
             ),
             'execute_callback'    => array( __CLASS__, 'activate_plugin' ),
@@ -42,11 +43,12 @@ class Site_Abilities {
 
         wp_register_ability( 'np/deactivate-plugin', array(
             'label' => 'Deactivate plugin', 'category' => 'np-site',
-            'description' => 'Deactivate an active plugin by its plugin file.',
+            'description' => 'Deactivate an active plugin by its plugin file. Safety: requires confirm=true.',
             'input_schema' => array(
-                'type' => 'object', 'required' => array( 'plugin' ),
+                'type' => 'object', 'required' => array( 'plugin', 'confirm' ),
                 'properties' => array(
                     'plugin' => array( 'type' => 'string' ),
+                    'confirm' => array( 'type' => 'boolean', 'description' => 'Must be true to deactivate a plugin.' ),
                 ),
             ),
             'execute_callback'    => array( __CLASS__, 'deactivate_plugin' ),
@@ -66,10 +68,13 @@ class Site_Abilities {
 
         wp_register_ability( 'np/switch-theme', array(
             'label' => 'Switch theme', 'category' => 'np-site',
-            'description' => 'Activate a theme by its stylesheet directory name.',
+            'description' => 'Activate a theme by its stylesheet directory name. Safety: requires confirm=true.',
             'input_schema' => array(
-                'type' => 'object', 'required' => array( 'stylesheet' ),
-                'properties' => array( 'stylesheet' => array( 'type' => 'string' ) ),
+                'type' => 'object', 'required' => array( 'stylesheet', 'confirm' ),
+                'properties' => array(
+                    'stylesheet' => array( 'type' => 'string' ),
+                    'confirm'    => array( 'type' => 'boolean', 'description' => 'Must be true to switch theme.' ),
+                ),
             ),
             'execute_callback'    => array( __CLASS__, 'switch_theme' ),
             'permission_callback' => static function () { return current_user_can( 'switch_themes' ); },
@@ -88,9 +93,10 @@ class Site_Abilities {
 
         wp_register_ability( 'np/update-site-settings', array(
             'label' => 'Update site settings', 'category' => 'np-site',
-            'description' => 'Update one or more core site settings.',
+            'description' => 'Update one or more core site settings. Safety: requires confirm=true.',
             'input_schema' => array(
                 'type' => 'object',
+                'required' => array( 'confirm' ),
                 'properties' => array(
                     'blogname'         => array( 'type' => 'string' ),
                     'blogdescription'  => array( 'type' => 'string' ),
@@ -107,6 +113,7 @@ class Site_Abilities {
                     'page_for_posts'   => array( 'type' => 'integer' ),
                     'show_on_front'    => array( 'type' => 'string', 'enum' => array( 'posts', 'page' ) ),
                     'posts_per_page'   => array( 'type' => 'integer' ),
+                    'confirm'          => array( 'type' => 'boolean', 'description' => 'Must be true to update site settings.' ),
                 ),
             ),
             'execute_callback'    => array( __CLASS__, 'update_site_settings' ),
@@ -117,13 +124,14 @@ class Site_Abilities {
         // ---------- Permalinks ----------
         wp_register_ability( 'np/update-permalinks', array(
             'label' => 'Update permalink structure', 'category' => 'np-site',
-            'description' => 'Set permalink structure (e.g. /%postname%/) and flush rewrite rules.',
+            'description' => 'Set permalink structure (e.g. /%postname%/) and flush rewrite rules. Safety: requires confirm=true.',
             'input_schema' => array(
-                'type' => 'object', 'required' => array( 'structure' ),
+                'type' => 'object', 'required' => array( 'structure', 'confirm' ),
                 'properties' => array(
                     'structure'          => array( 'type' => 'string' ),
                     'category_base'      => array( 'type' => 'string' ),
                     'tag_base'           => array( 'type' => 'string' ),
+                    'confirm'            => array( 'type' => 'boolean', 'description' => 'Must be true to update permalinks.' ),
                 ),
             ),
             'execute_callback'    => array( __CLASS__, 'update_permalinks' ),
@@ -151,13 +159,14 @@ class Site_Abilities {
         // ---------- Maintenance ----------
         wp_register_ability( 'np/maintenance-mode', array(
             'label' => 'Maintenance mode', 'category' => 'np-site',
-            'description' => 'Enable or disable a front-end maintenance page (returns 503 to non-logged-in visitors). Stored in the np_mcp_builder_options option.',
+            'description' => 'Enable or disable a front-end maintenance page (returns 503 to non-logged-in visitors). Safety: requires confirm=true.',
             'input_schema' => array(
-                'type' => 'object', 'required' => array( 'enabled' ),
+                'type' => 'object', 'required' => array( 'enabled', 'confirm' ),
                 'properties' => array(
                     'enabled' => array( 'type' => 'boolean' ),
                     'message' => array( 'type' => 'string' ),
                     'title'   => array( 'type' => 'string' ),
+                    'confirm' => array( 'type' => 'boolean', 'description' => 'Must be true to change maintenance mode.' ),
                 ),
             ),
             'execute_callback'    => array( __CLASS__, 'maintenance_mode' ),
@@ -200,6 +209,8 @@ class Site_Abilities {
     }
 
     public static function activate_plugin( array $input ) {
+        $confirmed = self::require_confirm( $input, 'activate a plugin' );
+        if ( is_wp_error( $confirmed ) ) { return $confirmed; }
         if ( ! function_exists( 'activate_plugin' ) ) {
             require_once ABSPATH . 'wp-admin/includes/plugin.php';
         }
@@ -213,6 +224,8 @@ class Site_Abilities {
     }
 
     public static function deactivate_plugin( array $input ) {
+        $confirmed = self::require_confirm( $input, 'deactivate a plugin' );
+        if ( is_wp_error( $confirmed ) ) { return $confirmed; }
         if ( ! function_exists( 'deactivate_plugins' ) ) {
             require_once ABSPATH . 'wp-admin/includes/plugin.php';
         }
@@ -246,6 +259,8 @@ class Site_Abilities {
     }
 
     public static function switch_theme( array $input ) {
+        $confirmed = self::require_confirm( $input, 'switch theme' );
+        if ( is_wp_error( $confirmed ) ) { return $confirmed; }
         $stylesheet = (string) ( $input['stylesheet'] ?? '' );
         $theme      = wp_get_theme( $stylesheet );
         if ( ! $theme->exists() ) {
@@ -271,7 +286,9 @@ class Site_Abilities {
         return $out;
     }
 
-    public static function update_site_settings( array $input ): array {
+    public static function update_site_settings( array $input ) {
+        $confirmed = self::require_confirm( $input, 'update site settings' );
+        if ( is_wp_error( $confirmed ) ) { return $confirmed; }
         $allowed = array(
             'blogname', 'blogdescription', 'admin_email', 'timezone_string',
             'date_format', 'time_format', 'start_of_week', 'WPLANG',
@@ -305,7 +322,9 @@ class Site_Abilities {
         return array( 'changed' => $changed );
     }
 
-    public static function update_permalinks( array $input ): array {
+    public static function update_permalinks( array $input ) {
+        $confirmed = self::require_confirm( $input, 'update permalinks' );
+        if ( is_wp_error( $confirmed ) ) { return $confirmed; }
         global $wp_rewrite;
         $structure = (string) ( $input['structure'] ?? '/%postname%/' );
         $wp_rewrite->set_permalink_structure( $structure );
@@ -352,7 +371,9 @@ class Site_Abilities {
         return $report;
     }
 
-    public static function maintenance_mode( array $input ): array {
+    public static function maintenance_mode( array $input ) {
+        $confirmed = self::require_confirm( $input, 'change maintenance mode' );
+        if ( is_wp_error( $confirmed ) ) { return $confirmed; }
         $opts = (array) get_option( 'np_mcp_builder_options', array() );
         $opts['maintenance_enabled'] = ! empty( $input['enabled'] );
         if ( isset( $input['title'] ) )   { $opts['maintenance_title']   = sanitize_text_field( (string) $input['title'] ); }
@@ -390,5 +411,12 @@ class Site_Abilities {
             'has_yoast'        => defined( 'WPSEO_VERSION' ),
             'has_mcp_adapter'  => class_exists( '\\WP\\MCP\\Core\\McpAdapter' ) || class_exists( '\\WordPress\\MCP\\McpAdapter' ),
         );
+    }
+
+    private static function require_confirm( array $input, string $action ) {
+        if ( empty( $input['confirm'] ) ) {
+            return new \WP_Error( 'np_confirm_required', 'Safety check: pass confirm=true to ' . $action . '.' );
+        }
+        return true;
     }
 }

@@ -33,9 +33,9 @@ class User_Abilities {
 
         wp_register_ability( 'np/create-user', array(
             'label' => 'Create user', 'category' => 'np-users',
-            'description' => 'Create a new user with role.',
+            'description' => 'Create a new WordPress user with role. Safety: requires confirm=true.',
             'input_schema' => array(
-                'type' => 'object', 'required' => array( 'login', 'email' ),
+                'type' => 'object', 'required' => array( 'login', 'email', 'confirm' ),
                 'properties' => array(
                     'login'        => array( 'type' => 'string' ),
                     'email'        => array( 'type' => 'string' ),
@@ -47,6 +47,7 @@ class User_Abilities {
                     'description'  => array( 'type' => 'string' ),
                     'website'      => array( 'type' => 'string' ),
                     'send_email'   => array( 'type' => 'boolean', 'default' => false ),
+                    'confirm'      => array( 'type' => 'boolean', 'description' => 'Must be true to create a user.' ),
                 ),
             ),
             'execute_callback'    => array( __CLASS__, 'create_user' ),
@@ -56,9 +57,10 @@ class User_Abilities {
 
         wp_register_ability( 'np/update-user', array(
             'label' => 'Update user', 'category' => 'np-users',
-            'description' => 'Update user fields and role by id or login.',
+            'description' => 'Update user fields and role by id or login. Safety: requires confirm=true.',
             'input_schema' => array(
                 'type' => 'object',
+                'required' => array( 'confirm' ),
                 'properties' => array(
                     'user_id'      => array( 'type' => 'integer' ),
                     'login'        => array( 'type' => 'string' ),
@@ -70,6 +72,7 @@ class User_Abilities {
                     'display_name' => array( 'type' => 'string' ),
                     'description'  => array( 'type' => 'string' ),
                     'website'      => array( 'type' => 'string' ),
+                    'confirm'      => array( 'type' => 'boolean', 'description' => 'Must be true to update a user.' ),
                 ),
             ),
             'execute_callback'    => array( __CLASS__, 'update_user' ),
@@ -79,12 +82,13 @@ class User_Abilities {
 
         wp_register_ability( 'np/delete-user', array(
             'label' => 'Delete user', 'category' => 'np-users',
-            'description' => 'Delete a user by id, optionally reassigning their content to another user.',
+            'description' => 'Delete a user by id, optionally reassigning their content to another user. Safety: requires confirm=true.',
             'input_schema' => array(
-                'type' => 'object', 'required' => array( 'user_id' ),
+                'type' => 'object', 'required' => array( 'user_id', 'confirm' ),
                 'properties' => array(
                     'user_id'      => array( 'type' => 'integer' ),
                     'reassign_to'  => array( 'type' => 'integer' ),
+                    'confirm'      => array( 'type' => 'boolean', 'description' => 'Must be true to delete a user.' ),
                 ),
             ),
             'execute_callback'    => array( __CLASS__, 'delete_user' ),
@@ -119,6 +123,8 @@ class User_Abilities {
     }
 
     public static function create_user( array $input ) {
+        $confirmed = self::require_confirm( $input, 'create a user' );
+        if ( is_wp_error( $confirmed ) ) { return $confirmed; }
         $login = sanitize_user( (string) ( $input['login'] ?? '' ), true );
         $email = sanitize_email( (string) ( $input['email'] ?? '' ) );
         if ( ! $login || ! is_email( $email ) ) {
@@ -148,6 +154,8 @@ class User_Abilities {
     }
 
     public static function update_user( array $input ) {
+        $confirmed = self::require_confirm( $input, 'update a user' );
+        if ( is_wp_error( $confirmed ) ) { return $confirmed; }
         $user = null;
         if ( ! empty( $input['user_id'] ) ) { $user = get_user_by( 'id', (int) $input['user_id'] ); }
         elseif ( ! empty( $input['login'] ) ) { $user = get_user_by( 'login', (string) $input['login'] ); }
@@ -169,6 +177,8 @@ class User_Abilities {
     }
 
     public static function delete_user( array $input ) {
+        $confirmed = self::require_confirm( $input, 'delete a user' );
+        if ( is_wp_error( $confirmed ) ) { return $confirmed; }
         if ( ! function_exists( 'wp_delete_user' ) ) {
             require_once ABSPATH . 'wp-admin/includes/user.php';
         }
@@ -179,5 +189,12 @@ class User_Abilities {
         }
         $ok = wp_delete_user( $user_id, $reassign );
         return array( 'deleted' => (bool) $ok, 'user_id' => $user_id );
+    }
+
+    private static function require_confirm( array $input, string $action ) {
+        if ( empty( $input['confirm'] ) ) {
+            return new \WP_Error( 'np_confirm_required', 'Safety check: pass confirm=true to ' . $action . '.' );
+        }
+        return true;
     }
 }
