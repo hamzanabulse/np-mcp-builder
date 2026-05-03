@@ -296,7 +296,7 @@ class Seo_Abilities {
         if ( $args['post_type'] === 'any' ) {
             $args['post_type'] = array_values( array_diff(
                 get_post_types( array( 'public' => true ), 'names' ),
-                array( 'attachment' )
+                array( 'attachment', 'elementor_library' )
             ) );
         }
         $posts   = get_posts( $args );
@@ -327,7 +327,7 @@ class Seo_Abilities {
             if ( ! $thumb )      { $issues[] = 'featured_image';   $missing['featured_image']++; }
             if ( $sptyp === '' ) { $issues[] = 'schema_page_type'; $missing['schema_page_type']++; }
             if ( mb_strlen( $p->post_title ) < 25 ) { $issues[] = 'short_title';   $missing['short_title']++; }
-            if ( str_word_count( wp_strip_all_tags( $p->post_content ) ) < 100 ) { $issues[] = 'no_content'; $missing['no_content']++; }
+            if ( self::post_indexable_word_count( $p ) < 100 ) { $issues[] = 'no_content'; $missing['no_content']++; }
 
             if ( $issues ) {
                 $rows[] = array(
@@ -347,5 +347,49 @@ class Seo_Abilities {
             'totals' => $missing,
             'posts'  => $rows,
         );
+    }
+
+    /**
+     * Count words from regular content plus Elementor JSON when post_content is empty.
+     */
+    private static function post_indexable_word_count( \WP_Post $post ): int {
+        $text = wp_strip_all_tags( (string) $post->post_content );
+
+        if ( str_word_count( $text ) < 100 ) {
+            $elementor_data = get_post_meta( $post->ID, '_elementor_data', true );
+            if ( is_string( $elementor_data ) && $elementor_data !== '' ) {
+                $decoded = json_decode( $elementor_data, true );
+                if ( json_last_error() !== JSON_ERROR_NONE ) {
+                    $decoded = json_decode( wp_unslash( $elementor_data ), true );
+                }
+                if ( is_array( $decoded ) ) {
+                    $text .= ' ' . self::flatten_text_values( $decoded );
+                }
+            }
+        }
+
+        return str_word_count( wp_strip_all_tags( $text ) );
+    }
+
+    /**
+     * Extract human-readable strings from nested Elementor settings arrays.
+     *
+     * @param mixed $value Value to flatten.
+     */
+    private static function flatten_text_values( $value ): string {
+        if ( is_scalar( $value ) ) {
+            return ' ' . (string) $value;
+        }
+
+        if ( ! is_array( $value ) ) {
+            return '';
+        }
+
+        $parts = array();
+        foreach ( $value as $item ) {
+            $parts[] = self::flatten_text_values( $item );
+        }
+
+        return implode( ' ', $parts );
     }
 }

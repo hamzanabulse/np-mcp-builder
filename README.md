@@ -13,7 +13,7 @@
 [![Yoast SEO](https://img.shields.io/badge/Yoast%20SEO-supported-A4286A?logo=yoast&logoColor=white)](https://yoast.com/)
 [![Gemini](https://img.shields.io/badge/Google%20Gemini-AI%20images-4285F4?logo=googlegemini&logoColor=white)](https://ai.google.dev/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.5.1-success)](https://github.com/hamzanabulse/np-mcp-builder/releases)
+[![Version](https://img.shields.io/badge/version-1.5.3-success)](https://github.com/hamzanabulse/np-mcp-builder/releases)
 [![Security audit](https://img.shields.io/badge/PHPCS--security-passing-success)](docs/SECURITY-AUDIT.md)
 
 [Installation](#-installation) • [Abilities](#-abilities) • [Examples](#-examples) • [Architecture](#-architecture)
@@ -36,7 +36,7 @@ Built on top of the official [WordPress Abilities API](https://github.com/WordPr
 - **AI-native image generation** — `np/generate-image` calls Google Gemini, resizes, converts to WebP, uploads to the Media Library with full SEO metadata (alt, title, caption, description).
 - **Full Elementor 4.0 atomic page-building** — a dedicated MCP server exposes per-widget tools (`add-atomic-heading`, `add-atomic-button`, `add-flexbox`, `add-icon-box`, etc.), composite `build-page`, template apply/save, find/move/duplicate elements, and full schema introspection.
 - **Auto JSON-LD schema** — `Schema_Builder` produces FAQPage, LocalBusiness/ProfessionalService, Service, BreadcrumbList, WebPage with AggregateRating + Reviews; injected into `<head>` from post meta.
-- **Deep Yoast integration** — create/update posts with slug, categories, tags, featured image, JSON-LD, custom CSS/JS, focus keyword, meta description, canonical, OG/Twitter images and schema page type; read/write **global** Yoast settings, call Yoast's own `/yoast/v1/get_head` endpoint, and audit a whole site for missing SEO essentials.
+- **Deep Yoast integration** — create/update posts with slug, categories, tags, featured image, JSON-LD, custom CSS/JS, focus keyword, meta description, canonical, OG/Twitter images and schema page type; read/write **global** Yoast settings, call Yoast's own `/yoast/v1/get_head` endpoint, and audit a whole site for missing SEO essentials without treating Elementor templates as public pages.
 - **Full site administration with safety confirmations** — list plugins/themes freely, while activate/deactivate plugins, switch themes, update site settings, change permalink structure, maintenance mode, and user mutations require `confirm=true`.
 - **Tabbed admin dashboard** — Overview, Abilities (per-tool on/off toggles), Tools (one-click cache clear), Settings (Gemini key, image defaults, license activation), Maintenance, About.
 - **Per-ability toggles** — disabled abilities are not registered with the Abilities API and not exposed via MCP — true zero-trust surface area.

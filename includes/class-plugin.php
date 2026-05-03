@@ -128,8 +128,15 @@ class Plugin {
         if ( ! $post_id ) { return; }
         $schemas = get_post_meta( $post_id, '_np_mcp_schema_jsonld', true );
         if ( is_array( $schemas ) ) {
-            foreach ( $schemas as $json ) {
-                if ( ! is_string( $json ) || $json === '' ) { continue; }
+            foreach ( $schemas as $schema ) {
+                if ( is_string( $schema ) ) {
+                    $json = trim( $schema );
+                } elseif ( is_array( $schema ) || is_object( $schema ) ) {
+                    $json = wp_json_encode( $schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
+                } else {
+                    $json = '';
+                }
+                if ( $json === '' ) { continue; }
                 echo "<script type=\"application/ld+json\">" . $json . "</script>\n"; // phpcs:ignore
             }
         }
